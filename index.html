@@ -1,34 +1,56 @@
-<script>
-  const PI_API_KEY = "kdtsahzvox5at3nytsm3rkdfmdwykyittodmenhzvgrf9n0bl8bswbp1oinmsxjm"; 
-  async function testPay() {
-    try {
-      const auth = await Pi.authenticate(['payments'], ()=>{});
-      await Pi.createPayment({
-        amount: 0.1,
-        memo: "Test Lovely Animals",
-        metadata: { orderId: "lovely-test-001" }
-      }, {
-        onReadyForServerApproval: async (paymentId) => {
-          await fetch(`https://api.minepi.com/v2/payments/${paymentId}/approve`, {
-            method: 'POST',
-            headers: { 'Authorization': `Key ${PI_API_KEY}` }
-          });
-        },
-        onReadyForServerCompletion: async (paymentId, txid) => {
-          await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
-            method: 'POST',
-            headers: { 
-              'Authorization': `Key ${PI_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ txid: txid })
-          });
-          alert("Thành công bro ơi! TXID: " + txid);
-        },
-        onCancel: (id) => { alert("Đã hủy"); },
-        onError: (e) => { alert("Lỗi: " + e); }
-      });
-    } catch(e) { alert(e); }
-  }
-  document.getElementById('payBtn').addEventListener('click', testPay);
-</script>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <script>Pi.init({ version: "2.0" })</script>
+</head>
+<body style="text-align:center; padding-top:80px; font-family: sans-serif;">
+  <h1>Lovely Animals</h1>
+  <p>App is running...</p>
+  <button id="payBtn" style="padding:15px 30px; background:#8a2be2; color:white; border:none; border-radius:10px; font-size:18px;">Pay 0.1 Pi to Test</button>
+  <p id="status" style="margin-top:20px;"></p>
+
+  <script>
+    const PI_API_KEY = "kdtsahzvox5at3nytsm3rkdfmdwykyittodmenhzvgrf9n0bl8bswbp1oinmsxjm";
+    async function testPay() {
+      document.getElementById('status').innerText = "Đang xử lý...";
+      try {
+        const auth = await Pi.authenticate(['payments'], ()=>{});
+        await Pi.createPayment({
+          amount: 0.1,
+          memo: "Test Lovely Animals",
+          metadata: { orderId: "lovely-001" }
+        }, {
+          onReadyForServerApproval: async (paymentId) => {
+            document.getElementById('status').innerText = "Đang duyệt...";
+            await fetch(`https://api.minepi.com/v2/payments/${paymentId}/approve`, {
+              method: 'POST',
+              headers: { 'Authorization': `Key ${PI_API_KEY}` }
+            });
+          },
+          onReadyForServerCompletion: async (paymentId, txid) => {
+            await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
+              method: 'POST',
+              headers: { 
+                'Authorization': `Key ${PI_API_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ txid: txid })
+            });
+            document.getElementById('status').innerText = "Thành công! TXID: " + txid;
+            alert("Thành công rồi bro! " + txid);
+          },
+          onCancel: () => { document.getElementById('status').innerText = "Đã hủy"; },
+          onError: (e) => { document.getElementById('status').innerText = "Lỗi: " + e; }
+        });
+      } catch(e) { 
+        document.getElementById('status').innerText = "Lỗi: " + e;
+        alert(e); 
+      }
+    }
+    document.getElementById('payBtn').addEventListener('click', testPay);
+  </script>
+</body>
+</html>
