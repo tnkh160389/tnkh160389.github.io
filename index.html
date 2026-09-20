@@ -1,32 +1,34 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-  <script>Pi.init({ version: "2.0" })</script>
-</head>
-<body style="text-align:center; padding-top:100px; font-family: sans-serif;">
-  <h1>Lovely Animals</h1>
-  <p>App is running...</p>
-  <button id="payBtn" style="padding:15px 30px; background:#8a2be2; color:white; border:none; border-radius:10px; font-size:18px;">Pay 1 Pi to Test</button>
-
-  <script>
-    async function testPay() {
-      try {
-        const auth = await Pi.authenticate(['payments'], (p)=>{});
-        const payment = await Pi.createPayment({
-          amount: 1,
-          memo: "Test Lovely Animals",
-          metadata: { orderId: "lovely-test" }
-        }, {
-          onReadyForServerApproval: (id) => { fetch('https://api.minepi.com/...'); },
-          onReadyForServerCompletion: (id, txid) => { alert("Success: " + txid); },
-          onCancel: (id) => { alert("Cancelled"); },
-          onError: (e) => { alert("Error: " + e); }
-        });
-      } catch(e) { alert(e); }
-    }
-    document.getElementById('payBtn').addEventListener('click', testPay);
-  </script>
-</body>
-</html>
+<script>
+  const PI_API_KEY = "kdtsahzvox5at3nytsm3rkdfmdwykyittodmenhzvgrf9n0bl8bswbp1oinmsxjm"; 
+  async function testPay() {
+    try {
+      const auth = await Pi.authenticate(['payments'], ()=>{});
+      await Pi.createPayment({
+        amount: 0.1,
+        memo: "Test Lovely Animals",
+        metadata: { orderId: "lovely-test-001" }
+      }, {
+        onReadyForServerApproval: async (paymentId) => {
+          await fetch(`https://api.minepi.com/v2/payments/${paymentId}/approve`, {
+            method: 'POST',
+            headers: { 'Authorization': `Key ${PI_API_KEY}` }
+          });
+        },
+        onReadyForServerCompletion: async (paymentId, txid) => {
+          await fetch(`https://api.minepi.com/v2/payments/${paymentId}/complete`, {
+            method: 'POST',
+            headers: { 
+              'Authorization': `Key ${PI_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ txid: txid })
+          });
+          alert("Thành công bro ơi! TXID: " + txid);
+        },
+        onCancel: (id) => { alert("Đã hủy"); },
+        onError: (e) => { alert("Lỗi: " + e); }
+      });
+    } catch(e) { alert(e); }
+  }
+  document.getElementById('payBtn').addEventListener('click', testPay);
+</script>
