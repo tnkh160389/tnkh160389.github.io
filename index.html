@@ -13,7 +13,8 @@ h1{font-size:15px;text-align:center;color:#ff69b4;margin:0 0 12px}
 .btn{width:100%;padding:12px;border:none;border-radius:8px;font-weight:700;margin-top:10px;cursor:pointer}
 .btn-pink{background:#ff69b4;color:#000}
 .btn-purple{background:#6c5ce7;color:#fff}
-.log{background:#000;color:#00ff88;border:1px solid #333;border-radius:8px;padding:10px;margin-top:14px;font-size:11px;min-height:140px;white-space:pre-wrap;word-break:break-all}
+.btn:disabled{opacity:0.4}
+.log{background:#000;color:#00ff88;border:1px solid #333;border-radius:8px;padding:10px;margin-top:14px;font-size:11px;min-height:160px;white-space:pre-wrap;word-break:break-all;overflow-y:auto}
 .small{font-size:10px;color:#888;text-align:center;margin-top:10px}
 </style>
 </head>
@@ -21,32 +22,98 @@ h1{font-size:15px;text-align:center;color:#ff69b4;margin:0 0 12px}
 <div class="card">
 <h1>🐶 Lovely Animals - A2U Test<br>Pay 5 UIDs</h1>
 <div class="badge" id="status">🌐 Mở bằng Pi Browser - Sandbox</div>
-<button class="btn btn-pink" onclick="approve()">1. 🔑 Cấp quyền ví 5 ĐT</button>
-<button class="btn btn-purple" onclick="pay5()">2. 💸 Test Pay 5 UIDs - LovelyAnimals</button>
+<button class="btn btn-pink" id="btnApprove" onclick="approve()">1. 🔑 Cấp quyền ví 5 ĐT</button>
+<button class="btn btn-purple" id="btnPay" onclick="pay5()" disabled>2. 💸 Test Pay 5 UIDs - LovelyAnimals</button>
 <div id="log" class="log">Log:
 - Ready. lovelyanimals.pi
-- Chờ cấp quyền...
-</div>
+- Chờ cấp quyền...</div>
 <div class="small">lovelyanimals.pi - Part of LocalPi HCM<br>No Commerce - Chỉ test hạ tầng A2U</div>
 </div>
 <script>
-let PiReady=false;
-function log(t){const l=document.getElementById('log');l.textContent+="\n"+t;l.scrollTop=9999;}
-window.addEventListener('load',()=>{if(window.Pi){Pi.init({version:"2.0",sandbox:true});PiReady=true;document.getElementById('status').textContent="✅ Pi SDK Ready - LovelyAnimals";log("Pi SDK Ready");}});
+let piAccessToken = null;
+let piUser = null;
+
+function log(t){const l=document.getElementById('log');l.textContent+="\n"+t;l.scrollTop=l.scrollHeight;}
+function setStatus(t){document.getElementById('status').textContent=t;}
+
+window.addEventListener('load',()=>{
+  if(window.Pi){
+    Pi.init({version:"2.0",sandbox:true});
+    setStatus("✅ Pi SDK Ready - LovelyAnimals");
+    log("Pi SDK Ready - sandbox:true");
+    log("👉 Bấm nút 1 để xác nhận ví trước bro!");
+  } else {
+    setStatus("❌ Mở bằng Pi Browser bro!");
+  }
+});
+
+// FIX QUAN TRỌNG: Xác nhận ví từ user
 async function approve(){
  if(!window.Pi){alert("Mở Pi Browser bro!");return;}
- try{const s=await Pi.authenticate(['username','payments'],()=>{});log("✅ Approve OK: @"+s.user.username);}catch(e){log("❌ "+e.message);}
-}
-async function pay5(){
- log("🚀 LovelyAnimals - Chạy Pay 5 UIDs...");
+ const btn = document.getElementById('btnApprove');
+ btn.disabled = true;
+ btn.textContent = "Đang xác nhận...";
+ log("🔑 Đang gọi Pi.authenticate(['username','payments'])...");
+
  try{
-  const r=await fetch("/api/pay5uid",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({amount:1})});
+   const auth = await Pi.authenticate(['username','payments'], onIncompletePaymentFound);
+   piAccessToken = auth.accessToken;
+   piUser = auth.user;
+   log("✅ Approve OK: @" + auth.user.username);
+   log("✅ accessToken: " + piAccessToken.slice(0,20) + "...");
+   log("✅ Ví đã xác nhận - ĐÃ CÓ QUYỀN A2U!");
+   setStatus("✅ Ví đã xác nhận: @" + auth.user.username);
+   document.getElementById('btnPay').disabled = false;
+   btn.textContent = "1. ✅ Đã cấp quyền ví";
+ }catch(e){
+   log("❌ Lỗi cấp quyền ví: " + (e.message||JSON.stringify(e)));
+   btn.disabled = false;
+   btn.textContent = "1. 🔑 Cấp quyền ví 5 ĐT (Thử lại)";
+ }
+}
+
+function onIncompletePaymentFound(payment){
+  log("⚠️ Phát hiện payment dở: " + payment.identifier);
+  log("-> Đang complete để mở khóa A2U...");
+  return Pi.completePayment(payment.identifier).then(()=>{log("✅ Đã dọn payment dở");}).catch(()=>{});
+}
+
+async function pay5(){
+ if(!piAccessToken){
+   log("⚠️ CHƯA XÁC NHẬN VÍ! Bấm nút 1 trước bro ơi!");
+   return;
+ }
+ log("\n🚀 LovelyAnimals - Chạy Pay 5 UIDs với ví @" + (piUser?.username||""));
+ log("Token gửi kèm để unlock feature_not_available...");
+ try{
+  const r=await fetch("/api/pay5uid",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer " + piAccessToken
+    },
+    body:JSON.stringify({amount:1})
+  });
   const data=await r.json();
-  log(`\nsuccess: ${data.success}\ntotal: ${data.total}`);
-  data.results.forEach(x=>{log(`${x.success?"✅":"❌"} ${x.uid.slice(0,6)}... ${x.success?"OK":JSON.stringify(x.details||x.error).slice(0,80)}`);});
-  if(data.success) log("\n🔥 5/5 THÀNH CÔNG - LOVELYANIMALS OK!");
-  document.getElementById('status').textContent=data.success?"✅ Pay thành công! 5/5 OK - LovelyAnimals":"⚠️ Check log";
- }catch(e){log("❌ Lỗi: "+e.message);}
+  log(`\nHTTP ${r.status} | success: ${data.success} | total: ${data.total}`);
+  if(data.results){
+    data.results.forEach(x=>{
+      if(x.success) log(`✅ ${x.uid.slice(0,6)}... OK`);
+      else log(`❌ ${x.uid.slice(0,6)}... ${x.error||""} ${JSON.stringify(x.details||"").slice(0,120)}`);
+    });
+  } else {
+    log(JSON.stringify(data).slice(0,500));
+  }
+  if(data.success) {
+    log("\n🔥 5/5 THÀNH CÔNG - LOVELYANIMALS OK!");
+    setStatus("✅ Pay thành công! 5/5 OK");
+  } else {
+    if(JSON.stringify(data).includes("feature_not_available")){
+      log("\n💡 Vẫn báo feature_not_available -> 5 UID đích chưa tạo ví Sandbox, hoặc app chưa bật A2U trong develop.pi");
+    }
+    setStatus("⚠ Check log - " + r.status);
+  }
+ }catch(e){log("❌ Lỗi fetch: "+e.message);}
 }
 </script>
 </body>
