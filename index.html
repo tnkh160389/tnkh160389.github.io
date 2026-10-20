@@ -8,113 +8,126 @@
 <style>
 body{background:#000;color:#fff;font-family:monospace;margin:0;padding:16px}
 .card{max-width:380px;margin:0 auto;background:#0a0a0a;border:1px solid #ff69b4;border-radius:12px;padding:16px}
-h1{font-size:15px;text-align:center;color:#ff69b4;margin:0 0 12px}
-.badge{text-align:center;color:#ff69b4;font-size:12px;margin-bottom:12px}
+h1{font-size:14px;text-align:center;color:#ff69b4;margin:0 0 10px}
+.badge{text-align:center;color:#ff69b4;font-size:12px;margin-bottom:10px}
 .btn{width:100%;padding:12px;border:none;border-radius:8px;font-weight:700;margin-top:10px;cursor:pointer}
 .btn-pink{background:#ff69b4;color:#000}
 .btn-purple{background:#6c5ce7;color:#fff}
 .btn:disabled{opacity:0.4}
-.log{background:#000;color:#00ff88;border:1px solid #333;border-radius:8px;padding:10px;margin-top:14px;font-size:11px;min-height:160px;white-space:pre-wrap;word-break:break-all;overflow-y:auto}
+.log{background:#000;color:#00ff88;border:1px solid #333;border-radius:8px;padding:10px;margin-top:12px;font-size:11px;min-height:180px;white-space:pre-wrap;word-break:break-all;overflow-y:auto}
+.wallets{background:#111;border:1px dashed #ff69b4;border-radius:8px;padding:8px;margin-top:10px;font-size:11px}
 .small{font-size:10px;color:#888;text-align:center;margin-top:10px}
+.ok{color:#00ff88} .wait{color:#ffcc00}
 </style>
 </head>
 <body>
 <div class="card">
 <h1>🐶 Lovely Animals - A2U Test<br>Pay 5 UIDs</h1>
 <div class="badge" id="status">🌐 Mở bằng Pi Browser - Sandbox</div>
-<button class="btn btn-pink" id="btnApprove" onclick="approve()">1. 🔑 Cấp quyền ví 5 ĐT</button>
-<button class="btn btn-purple" id="btnPay" onclick="pay5()" disabled>2. 💸 Test Pay 5 UIDs - LovelyAnimals</button>
+
+<button class="btn btn-pink" id="btnApprove" onclick="approveNext()">1. 🔑 Cấp quyền ví (0/5)</button>
+
+<div class="wallets" id="walletList">📋 Danh sách ví đã xác nhận:
+- Chưa có ví nào</div>
+
+<button class="btn btn-purple" id="btnPay" onclick="pay5()" disabled>2. 💸 Test Pay 5 UIDs - Chờ đủ 5 ví</button>
+
 <div id="log" class="log">Log:
 - Ready. lovelyanimals.pi
-- Chờ cấp quyền...</div>
-<div class="small">lovelyanimals.pi - Part of LocalPi HCM<br>No Commerce - Chỉ test hạ tầng A2U</div>
+- Cần 5 tài khoản khác nhau đăng nhập xác nhận ví!</div>
+<div class="small">lovelyanimals.pi - 5 ví xác nhận mới Pay<br>Part of LocalPi HCM</div>
 </div>
+
 <script>
-let piAccessToken = null;
-let piUser = null;
+let confirmedWallets = JSON.parse(localStorage.getItem('lovely_5wallets') || '[]');
 
 function log(t){const l=document.getElementById('log');l.textContent+="\n"+t;l.scrollTop=l.scrollHeight;}
 function setStatus(t){document.getElementById('status').textContent=t;}
-
-window.addEventListener('load',()=>{
-  if(window.Pi){
-    Pi.init({version:"2.0",sandbox:true});
-    setStatus("✅ Pi SDK Ready - LovelyAnimals");
-    log("Pi SDK Ready - sandbox:true");
-    log("👉 Bấm nút 1 để xác nhận ví trước bro!");
+function renderWallets(){
+  const el = document.getElementById('walletList');
+  if(confirmedWallets.length===0){el.innerHTML="📋 Danh sách ví đã xác nhận:<br>- Chưa có ví nào"; return;}
+  let html = `📋 Đã xác nhận ${confirmedWallets.length}/5 ví:<br>`;
+  confirmedWallets.forEach((w,i)=>{html+=`${i+1}. <span class="ok">✅ @${w.username} - ${w.uid.slice(0,6)}...</span><br>`;});
+  if(confirmedWallets.length<5) html+=`<span class="wait">👉 Cần thêm ${5-confirmedWallets.length} ví nữa...</span>`;
+  else html+=`<span class="ok">🔥 ĐỦ 5 VÍ - SẴN SÀNG PAY!</span>`;
+  el.innerHTML=html;
+  
+  const btnA = document.getElementById('btnApprove');
+  const btnP = document.getElementById('btnPay');
+  if(confirmedWallets.length < 5){
+    btnA.textContent = `1. 🔑 Cấp quyền ví (${confirmedWallets.length}/5) - Tài khoản tiếp theo`;
+    btnA.disabled = false;
+    btnP.disabled = true;
+    btnP.textContent = `2. 💸 Test Pay 5 UIDs - Chờ đủ 5 ví (${confirmedWallets.length}/5)`;
   } else {
-    setStatus("❌ Mở bằng Pi Browser bro!");
+    btnA.textContent = `✅ Đã đủ 5 ví (${confirmedWallets.length}/5)`;
+    btnA.disabled = true;
+    btnP.disabled = false;
+    btnP.textContent = `2. 💸 Test Pay 5 UIDs - ĐỦ 5 VÍ! BẤM ĐI!`;
+    setStatus("✅ Đủ 5 ví - Sẵn sàng Pay 5/5!");
   }
-});
-
-// FIX QUAN TRỌNG: Xác nhận ví từ user
-async function approve(){
- if(!window.Pi){alert("Mở Pi Browser bro!");return;}
- const btn = document.getElementById('btnApprove');
- btn.disabled = true;
- btn.textContent = "Đang xác nhận...";
- log("🔑 Đang gọi Pi.authenticate(['username','payments'])...");
-
- try{
-   const auth = await Pi.authenticate(['username','payments'], onIncompletePaymentFound);
-   piAccessToken = auth.accessToken;
-   piUser = auth.user;
-   log("✅ Approve OK: @" + auth.user.username);
-   log("✅ accessToken: " + piAccessToken.slice(0,20) + "...");
-   log("✅ Ví đã xác nhận - ĐÃ CÓ QUYỀN A2U!");
-   setStatus("✅ Ví đã xác nhận: @" + auth.user.username);
-   document.getElementById('btnPay').disabled = false;
-   btn.textContent = "1. ✅ Đã cấp quyền ví";
- }catch(e){
-   log("❌ Lỗi cấp quyền ví: " + (e.message||JSON.stringify(e)));
-   btn.disabled = false;
-   btn.textContent = "1. 🔑 Cấp quyền ví 5 ĐT (Thử lại)";
- }
+  localStorage.setItem('lovely_5wallets', JSON.stringify(confirmedWallets));
 }
 
-function onIncompletePaymentFound(payment){
-  log("⚠️ Phát hiện payment dở: " + payment.identifier);
-  log("-> Đang complete để mở khóa A2U...");
-  return Pi.completePayment(payment.identifier).then(()=>{log("✅ Đã dọn payment dở");}).catch(()=>{});
+window.addEventListener('load',()=>{
+  if(window.Pi){Pi.init({version:"2.0",sandbox:true});setStatus("✅ Pi SDK Ready - Cần 5 ví");renderWallets();log("Pi SDK Ready");log("Hướng dẫn: Dùng 5 ĐT Pi khác nhau, mỗi ĐT log Pi Browser vào web này bấm nút 1 để xác nhận ví!");}
+});
+
+async function approveNext(){
+  if(!window.Pi){alert("Mở Pi Browser bro!");return;}
+  if(confirmedWallets.length >=5){log("Đã đủ 5 ví rồi!");return;}
+  try{
+    log(`\n🔑 Đang xin quyền ví thứ ${confirmedWallets.length+1}/5...`);
+    const auth = await Pi.authenticate(['username','payments'], (p)=>Pi.completePayment(p.identifier));
+    
+    // Check trùng
+    if(confirmedWallets.find(w=>w.username===auth.user.username)){
+      log(`⚠️ @${auth.user.username} đã xác nhận rồi! Dùng tài khoản khác đi bro!`);
+      return;
+    }
+    
+    confirmedWallets.push({
+      username: auth.user.username,
+      uid: auth.user.uid,
+      accessToken: auth.accessToken,
+      time: new Date().toISOString()
+    });
+    
+    log(`✅ Xác nhận ví ${confirmedWallets.length}/5 OK: @${auth.user.username}`);
+    renderWallets();
+    
+    if(confirmedWallets.length < 5){
+      log(`👉 Đổi sang ĐT Pi thứ ${confirmedWallets.length+1} đăng nhập rồi bấm tiếp!`);
+      alert(`Đã xác nhận ${confirmedWallets.length}/5 ví @${auth.user.username}!\nĐổi sang tài khoản Pi khác để xác nhận tiếp!`);
+    } else {
+      log(`\n🔥 ĐỦ 5/5 VÍ RỒI! GIỜ BẤM NÚT 2 ĐỂ PAY!`);
+    }
+  }catch(e){log("❌ Lỗi: "+e.message);}
 }
 
 async function pay5(){
- if(!piAccessToken){
-   log("⚠️ CHƯA XÁC NHẬN VÍ! Bấm nút 1 trước bro ơi!");
-   return;
- }
- log("\n🚀 LovelyAnimals - Chạy Pay 5 UIDs với ví @" + (piUser?.username||""));
- log("Token gửi kèm để unlock feature_not_available...");
- try{
-  const r=await fetch("/api/pay5uid",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer " + piAccessToken
-    },
-    body:JSON.stringify({amount:1})
-  });
-  const data=await r.json();
-  log(`\nHTTP ${r.status} | success: ${data.success} | total: ${data.total}`);
-  if(data.results){
-    data.results.forEach(x=>{
-      if(x.success) log(`✅ ${x.uid.slice(0,6)}... OK`);
-      else log(`❌ ${x.uid.slice(0,6)}... ${x.error||""} ${JSON.stringify(x.details||"").slice(0,120)}`);
+  if(confirmedWallets.length < 5){log("⚠️ Chưa đủ 5 ví bro ơi!");return;}
+  log("\n🚀 Đã đủ 5 ví - Bắt đầu Pay 5 UIDs...");
+  log("5 ví đã xác nhận: " + confirmedWallets.map(w=>"@"+w.username).join(", "));
+  try{
+    // Dùng token của ví cuối cùng (hoặc ví chủ app) để gọi A2U
+    const mainToken = confirmedWallets[confirmedWallets.length-1].accessToken;
+    const r = await fetch("/api/pay5uid",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+mainToken},
+      body:JSON.stringify({amount:1, uids: confirmedWallets.map(w=>w.uid)})
     });
-  } else {
-    log(JSON.stringify(data).slice(0,500));
-  }
-  if(data.success) {
-    log("\n🔥 5/5 THÀNH CÔNG - LOVELYANIMALS OK!");
-    setStatus("✅ Pay thành công! 5/5 OK");
-  } else {
-    if(JSON.stringify(data).includes("feature_not_available")){
-      log("\n💡 Vẫn báo feature_not_available -> 5 UID đích chưa tạo ví Sandbox, hoặc app chưa bật A2U trong develop.pi");
-    }
-    setStatus("⚠ Check log - " + r.status);
-  }
- }catch(e){log("❌ Lỗi fetch: "+e.message);}
+    const data = await r.json();
+    log(`\nHTTP ${r.status} | success: ${data.success} | total: ${data.total}`);
+    data.results?.forEach(x=>log(`${x.success?"✅":"❌"} ${x.uid.slice(0,6)} ${x.success?"OK":(x.error||"")}`));
+    if(data.success) log("\n🔥 5/5 THÀNH CÔNG - LOVELYANIMALS OK!");
+    else log("\nVẫn lỗi: " + JSON.stringify(data).slice(0,300));
+  }catch(e){log("❌ Lỗi fetch: "+e.message);}
 }
+
+// Thêm nút reset để test lại
+function resetWallets(){if(confirm("Xóa hết 5 ví đã xác nhận?")){confirmedWallets=[];renderWallets();log("Đã reset - Bắt đầu lại từ 0/5");}}
 </script>
+<div style="text-align:center;margin-top:8px"><a onclick="resetWallets()" style="color:#666;font-size:10px;cursor:pointer;text-decoration:underline">Reset 5 ví (test lại)</a></div>
 </body>
 </html>
