@@ -1,39 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lovely Animals - Trum cuoi</title>
+</head>
+<body>
 <div style="max-width:380px;margin:20px auto;font-family:sans-serif;text-align:center">
   <h3 style="margin:0">Lovely Animals - Trùm cuối (Pay 5 UIDs)</h3>
-  <p id="status" style="color:#00c851;font-weight:bold">Chưa chạy</p>
-  <button onclick="capQuyenVi()" style="width:100%;padding:12px;background:#00c851;color:white;border:none;border-radius:8px;margin-bottom:10px;font-weight:bold">🔑 1. Cấp quyền ví (bấm trên TỪNG ĐT)</button>
-  <button onclick="pay()" style="width:100%;padding:12px;background:#7b2cbf;color:white;border:none;border-radius:8px;font-weight:bold">🚀 2. Chạy Pay 5 UIDs ngay</button>
+  <p id="status" style="color:#00c851;font-weight:bold">Đang load Pi SDK...</p>
+
+  <button id="btn1" style="width:100%;padding:12px;background:#00c851;color:white;border:none;border-radius:8px;margin-bottom:10px;font-weight:bold">🔑 1. Cấp quyền ví (bấm trên TỪNG ĐT)</button>
+  <button id="btn2" style="width:100%;padding:12px;background:#7b2cbf;color:white;border:none;border-radius:8px;font-weight:bold">🚀 2. Chạy Pay 5 UIDs ngay</button>
+
   <div id="log" style="margin-top:15px;background:#000;color:#00ff88;font-family:monospace;font-size:12px;text-align:left;padding:10px;border-radius:8px;min-height:100px;white-space:pre-wrap">Chờ...</div>
 </div>
+
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <script>
-Pi.init({version:"2.0"});
-async function capQuyenVi(){
+let piReady = false;
+function initPi(){
+  if(window.Pi){
+    Pi.init({version:"2.0", sandbox:false});
+    piReady = true;
+    document.getElementById('status').innerText = "✅ Pi SDK sẵn sàng - Chưa chạy";
+    console.log("Pi SDK OK");
+  }else{
+    setTimeout(initPi, 500);
+  }
+}
+initPi();
+
+document.getElementById('btn1').addEventListener('click', async ()=>{
+  if(!piReady) return alert("Pi SDK chưa load, đợi 2s");
   try{
     const auth = await Pi.authenticate(['username','payments','wallet_address'], p=>{});
     document.getElementById('status').innerText = "✅ Đã cấp: " + auth.user.username;
-    document.getElementById('log').innerText = "✅ Cấp quyền OK\nUID: " + auth.user.uid;
-  }catch(e){ alert(e.message); }
-}
-async function pay(){
+    document.getElementById('log').innerText = "✅ Cấp quyền OK\nUID: " + auth.user.uid + "\nUsername: "+auth.user.username;
+  }catch(e){ 
+    document.getElementById('log').innerText = "Lỗi cấp quyền: "+e.message;
+    alert(e.message); 
+  }
+});
+
+document.getElementById('btn2').addEventListener('click', async ()=>{
   const log = document.getElementById('log');
   log.innerText = "Đang bắn 5 UIDs...\n";
   try{
     const res = await fetch('/api/pay5uid',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({amount:1})});
     const data = await res.json();
-  
-    // HIỆN GỌN NHƯ LUMIA909
     let txt = `success: ${data.success}\ntotal: ${data.total}\n\n`;
     data.results.forEach(r=>{
       const short = r.uid.slice(0,6);
       txt += r.success ? `✅ ${short}... OK\n` : `❌ ${short}... ${r.error}\n`;
     });
     txt += `\n${data.success ? "🎉 5/5 THÀNH CÔNG - TRÙM CUỐI!" : "Thử lại"}`;
-  
     log.innerText = txt;
     document.getElementById('status').innerText = data.success ? "🎉 Pay thành công! 5/5 OK" : "Fail";
   }catch(err){
     log.innerText = "Lỗi fetch: "+err.message;
   }
-}
+});
 </script>
+</body>
+</html>
