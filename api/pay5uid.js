@@ -10,13 +10,23 @@ export default async function handler(req, res) {
   }
 
   const body = req.body || {};
-  const uid = typeof body.uid === "string" ? body.uid.trim() : "";
-  const username = typeof body.username === "string" ? body.username.trim() : "";
-  const amount = Number(body.amount) || 1;
-
-  if (!uid) {
-    return res.status(400).json({ success: false, error: "Missing uid" });
+  let targetList = [];
+  if (Array.isArray(body.uids) && body.uids.length > 0) {
+    targetList = body.uids.map(u => typeof u === 'string' ? u.trim() : '').filter(Boolean);
+  } else if (typeof body.uid === 'string' && body.uid.trim()) {
+    targetList = [body.uid.trim()];
   }
+
+  const DEFAULT_5UIDS = [
+    "17bd5195-d292-453f-9257-e3c9d812a7a0",
+    "4a0e132a-2689-484b-8d4b-04e6391a89d9",
+    "7dc50a3e-e66d-4e06-8077-d2b5306889b1",
+    "0c5bbb4d-5306-48b4-b227-383d95399a53",
+    "f963dc03-f6f5-41ba-a3f4-54f5a8569b5c"
+  ];
+  
+  if (targetList.length === 0) targetList = DEFAULT_5UIDS;
+  const amount = Number(body.amount) || 1;
 
   async function piFetch(path, method = "GET", payload) {
     const r = await fetch(`https://api.minepi.com${path}`, {
@@ -39,7 +49,7 @@ export default async function handler(req, res) {
       let paymentId = null;
       if (piErrorData && piErrorData.payment && piErrorData.payment.identifier) paymentId = piErrorData.payment.identifier;
       if (!paymentId && piErrorData && piErrorData.identifier) paymentId = piErrorData.identifier;
-      if (!paymentId && piErrorData && piErrorData.ongoing_payment && piErrorData.ongoing_payment.identifier) paymentId = piErrorData.ongoing_payment.identifier;
+      if (!paymentId && piErrorData && piErrorData.ongoing_payment.identifier) paymentId = piErrorData.ongoing_payment.identifier;
       
       if (!paymentId) {
         const inc = await piFetch("/v2/payments/incomplete", "GET");
@@ -50,52 +60,74 @@ export default async function handler(req, res) {
       }
 
       if (paymentId) {
-        let result = await piFetch(`/v2/payments/${paymentId}/complete`, "POST", { txid: "a2u_retry_complete" });
+        let result = await piFetch(`/v2/payments/${paymentId}/complete`, "POST", { txid: "lovely_retry_complete" });
         if (!result.ok) {
           result = await piFetch(`/v2/payments/${paymentId}/cancel`, "POST");
         }
-        return { cancelled: result.ok, paymentId };
+        return { cancelled: result.ok, paymentId, result: result.data };
       }
     } catch (e) {}
     return { cancelled: false };
   }
 
-  let attempt = 0;
-  while (attempt < 3) {
-    attempt++;
-    const piPayload = {
-      payment: {
-        amount,
-        memo: `Lovely Animals A2U to @${username || uid.substring(0,6)}`,
-        metadata: { target_uid: uid, attempt },
-        uid,
-      },
-    };
+  const results = [];
 
-    const piResponse = await piFetch("/v2/payments", "POST", piPayload);
+  for (let i = 0; i < targetList.length; i++) {
+    const uid = targetList[i];
+    let attempt = 0;
+    let finalResult = null;
 
-    if (piResponse.ok) {
-      return res.status(200).json({
-        success: true,
-        pi_response: piResponse.data,
-        attempts: attempt
-      });
-    } else {
-      const errStr = JSON.stringify(piResponse.data).toLowerCase();
-      if (errStr.includes("ongoing_payment_found") || errStr.includes("ongoing payment")) {
-        const cancelRes = await cancelOngoingIfFound(piResponse.data);
-        if (cancelRes.cancelled) continue; // retry
-        else return res.status(409).json({ success: false, error: "ongoing_payment_found but cannot cancel", details: piResponse.data });
+    while (attempt < 3) {
+      attempt++;
+      const piPayload = {
+        payment: {
+          amount,
+          memo: `Lovely Animals Reward to @${uid.substring(0,6)} - ${i+1}/${targetList.length}`,
+          metadata: { target_uid: uid, batch_index: i, attempt },
+          uid,
+        },
+      };
+
+      const piResponse = await piFetch("/v2/payments", "POST", piPayload);
+
+      if (piResponse.ok) {
+        finalResult = { uid, success: true, pi_response: piResponse.data, attempts: attempt };
+        break;
       } else {
-        return res.status(piResponse.status).json({
-          success: false,
-          error: "Pi Platform API rejected",
-          details: piResponse.data,
-          attempts: attempt
-        });
+        const errStr = JSON.stringify(piResponse.data).toLowerCase();
+        if (errStr.includes("ongoing_payment_found") || errStr.includes("ongoing payment")) {
+          const cancelRes = await cancelOngoingIfFound(piResponse.data);
+          if (cancelRes.cancelled) {
+            finalResult = { uid, success: false, retrying: true, cancelled_old: cancelRes.paymentId };
+            continue;
+          } else {
+            finalResult = { uid, success: false, error: "ongoing_payment_found but cannot cancel", details: piResponse.data, status: piResponse.status };
+            break;
+          }
+        } else {
+          finalResult = { uid, success: false, error: "Pi API rejected", details: piResponse.data, status: piResponse.status, attempts: attempt };
+          break;
+        }
       }
     }
+
+    if (finalResult && finalResult.retrying) {
+      const lastPayload = {
+        payment: { amount, memo: `Lovely Animals Retry ${uid}`, metadata: { target_uid: uid }, uid }
+      };
+      const lastResp = await piFetch("/v2/payments", "POST", lastPayload);
+      finalResult = lastResp.ok ? { uid, success: true, pi_response: lastResp.data } : { uid, success: false, error: "Failed after cancel", details: lastResp.data };
+    }
+
+    results.push(finalResult);
+    if (i < targetList.length - 1) await new Promise(r => setTimeout(r, 800));
   }
 
-  return res.status(500).json({ success: false, error: "Failed after 3 retries" });
+  const allOk = results.every(r => r.success);
+  return res.status(allOk ? 200 : 207).json({
+    success: allOk,
+    total: results.length,
+    results,
+    note: "Lovely Animals A2U Batch 5 UIDs with auto cancel/retry ongoing"
+  });
 }
