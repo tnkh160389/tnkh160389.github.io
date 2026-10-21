@@ -2,18 +2,26 @@
 <html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lovely Animals - Trum cuoi</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Lovely Animals - Testnet - Trum cuoi</title>
+<style>
+body{margin:0;background:#0f0f0f;color:#fff;font-family:system-ui}
+.box{max-width:400px;margin:20px auto;padding:15px;text-align:center}
+h3{margin:0 0 10px;color:#00ff88}
+#status{font-weight:bold;margin:10px 0;padding:8px;border-radius:6px;background:#1a1a1a;color:#00c851}
+button{width:100%;padding:14px;border:none;border-radius:10px;margin-bottom:12px;font-weight:bold;font-size:15px;cursor:pointer}
+#b1{background:#00c851;color:#fff}
+#b2{background:#7b2cbf;color:#fff}
+#log{background:#000;color:#00ff88;font-family:monospace;font-size:12px;text-align:left;padding:10px;border-radius:8px;min-height:120px;white-space:pre-wrap;overflow:auto;border:1px solid #333}
+</style>
 </head>
 <body>
-<div style="max-width:380px;margin:20px auto;font-family:sans-serif;text-align:center">
-  <h3 style="margin:0">Lovely Animals - Trùm cuối (Pay 5 UIDs)</h3>
-  <p id="status" style="color:#00c851;font-weight:bold">Đang load Pi SDK...</p>
-
-  <button id="btn1" style="width:100%;padding:12px;background:#00c851;color:white;border:none;border-radius:8px;margin-bottom:10px;font-weight:bold">🔑 1. Cấp quyền ví (bấm trên TỪNG ĐT)</button>
-  <button id="btn2" style="width:100%;padding:12px;background:#7b2cbf;color:white;border:none;border-radius:8px;font-weight:bold">🚀 2. Chạy Pay 5 UIDs ngay</button>
-
-  <div id="log" style="margin-top:15px;background:#000;color:#00ff88;font-family:monospace;font-size:12px;text-align:left;padding:10px;border-radius:8px;min-height:100px;white-space:pre-wrap">Chờ...</div>
+<div class="box">
+  <h3>🌸 Lovely Animals - TESTNET<br>Pay 5 UIDs Trùm Cuối</h3>
+  <div id="status">⏳ Đang load Pi SDK Testnet...</div>
+  <button id="b1">🔑 1. Cấp quyền ví (bấm trên TỪNG ĐT - 5 TK)</button>
+  <button id="b2">🚀 2. Chạy Pay 5 UIDs Testnet ngay</button>
+  <div id="log">Chờ Pi SDK...</div>
 </div>
 
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
@@ -21,43 +29,56 @@
 let piReady = false;
 function initPi(){
   if(window.Pi){
-    Pi.init({version:"2.0", sandbox:false});
+    Pi.init({version:"2.0", sandbox:true}); // TESTNET MODE
     piReady = true;
-    document.getElementById('status').innerText = "✅ Pi SDK sẵn sàng - Chưa chạy";
-    console.log("Pi SDK OK");
+    document.getElementById('status').innerText = "✅ Pi SDK Testnet sẵn sàng - Chưa chạy";
+    document.getElementById('log').innerText = "✅ SDK Testnet OK\n1. Cấp quyền trên 5 ĐT trước\n2. Rồi bấm Pay trên ĐT chính\n";
+    console.log("Pi Testnet SDK OK");
   }else{
-    setTimeout(initPi, 500);
+    setTimeout(initPi, 400);
   }
 }
 initPi();
 
-document.getElementById('btn1').addEventListener('click', async ()=>{
-  if(!piReady) return alert("Pi SDK chưa load, đợi 2s");
+document.getElementById('b1').addEventListener('click', async ()=>{
+  const log = document.getElementById('log');
+  const st = document.getElementById('status');
+  if(!piReady){ alert("SDK chưa load xong, đợi 2s"); return; }
   try{
+    st.innerText = "⏳ Đang xin quyền...";
     const auth = await Pi.authenticate(['username','payments','wallet_address'], p=>{});
-    document.getElementById('status').innerText = "✅ Đã cấp: " + auth.user.username;
-    document.getElementById('log').innerText = "✅ Cấp quyền OK\nUID: " + auth.user.uid + "\nUsername: "+auth.user.username;
+    st.innerText = "✅ Đã cấp: " + auth.user.username;
+    log.innerText = "✅ CẤP QUYỀN TESTNET OK\n\nUID: " + auth.user.uid + "\nUsername: "+auth.user.username+"\n\nĐủ 5 TK rồi qua ĐT chính bấm nút 2.";
   }catch(e){ 
-    document.getElementById('log').innerText = "Lỗi cấp quyền: "+e.message;
-    alert(e.message); 
+    st.innerText = "❌ Lỗi cấp quyền";
+    log.innerText = "Lỗi: " + (e.message||JSON.stringify(e));
+    console.error(e);
   }
 });
 
-document.getElementById('btn2').addEventListener('click', async ()=>{
+document.getElementById('b2').addEventListener('click', async ()=>{
   const log = document.getElementById('log');
-  log.innerText = "Đang bắn 5 UIDs...\n";
+  const st = document.getElementById('status');
+  if(!piReady){ alert("SDK chưa sẵn sàng"); return; }
   try{
+    st.innerText = "⏳ Đang bắn 5 UIDs Testnet...";
+    log.innerText = "🚀 Đang gọi /api/pay5uid (testnet)...\nĐợi 5-8s...\n";
     const res = await fetch('/api/pay5uid',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({amount:1})});
     const data = await res.json();
-    let txt = `success: ${data.success}\ntotal: ${data.total}\n\n`;
-    data.results.forEach(r=>{
+    let txt = `Kết quả: ${data.success ? "THÀNH CÔNG" : "1 phần fail"}\nTotal: ${data.total}\n\n`;
+    data.results.forEach((r,idx)=>{
       const short = r.uid.slice(0,6);
-      txt += r.success ? `✅ ${short}... OK\n` : `❌ ${short}... ${r.error}\n`;
+      if(r.success) txt += `✅ [${idx+1}] ${short}... OK\n`;
+      else {
+        txt += `❌ [${idx+1}] ${short}... ${r.error}\n`;
+        if(r.details) txt += `   Chi tiết: ${JSON.stringify(r.details).slice(0,200)}\n`;
+      }
     });
-    txt += `\n${data.success ? "🎉 5/5 THÀNH CÔNG - TRÙM CUỐI!" : "Thử lại"}`;
+    txt += `\n${data.success ? "🎉 5/5 TESTNET OK - TRÙM CUỐI!" : "⚠️ Có lỗi, coi log Vercel"}`;
     log.innerText = txt;
-    document.getElementById('status').innerText = data.success ? "🎉 Pay thành công! 5/5 OK" : "Fail";
+    st.innerText = data.success ? "🎉 Pay Testnet thành công! 5/5 OK" : "⚠️ Pay xong có lỗi";
   }catch(err){
+    st.innerText = "❌ Lỗi fetch";
     log.innerText = "Lỗi fetch: "+err.message;
   }
 });
