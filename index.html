@@ -7,7 +7,7 @@
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <style>
 body{font-family:Arial;text-align:center;padding:15px;background:#fff;color:#000}
-.btn{width:100%;padding:14px;border-radius:12px;border:0;font-size:15px;font-weight:bold;margin:6px 0}
+.btn{width:100%;padding:14px;border-radius:12px;border:0;font-size:15px;font-weight:bold;margin:6px 0;cursor:pointer}
 .green{background:#22c55e;color:#fff}
 .purple{background:#7c3aed;color:#fff}
 .box{background:#000;color:#0f8;text-align:left;padding:10px;border-radius:10px;font-family:monospace;white-space:pre-wrap;font-size:12px;min-height:100px}
@@ -16,16 +16,26 @@ body{font-family:Arial;text-align:center;padding:15px;background:#fff;color:#000
 <body>
 <h3>Lovely Animals - 5 UIDs Fixed</h3>
 <div id="st" style="color:#b45309;font-weight:bold">Domain: tnkh160389.github.io - sandbox:true</div>
-<button class="btn green" onclick="auth()">1. Cap quyen</button>
+<button class="btn green" onclick="auth()">1. Cap quyen vi</button>
 <button class="btn purple" onclick="pay()">2. Pay 5 UIDs</button>
 <div id="log" class="box">Chua chay...
 UIDs:
-[STRIPPED 180 bytes]
+b38efa68-4778-4f60-b62e-f76793d64668
+b4acb64e-92a4-4807-9e21-eb089cb5f89a
+6b1f43f1-3220-4a92-b1cd-aac769edeca6
+5f1fe442-51e8-4542-87a5-5991d41992f6
+af95ea0c-147a-4c95-8454-f35a285785bf
 </div>
 <script>
 Pi.init({version:"2.0",sandbox:true});
 const BACKEND='https://tnkh160389.github.io/api/pay5uid';
-const UIDS=["b38efa68-4778-4f60-b62e-f76793d64668","b4acb64e-92a4-4807-9e21-eb089cb5f89a","6b1f43f1-3220-4a92-b1cd-aac769edeca6","5f1fe442-51e8-4542-87a5-5991d41992f6","af95ea0c-147a-4c95-8454-f35a285785bf"];
+const UIDS=[
+  "b38efa68-4778-4f60-b62e-f76793d64668",
+  "b4acb64e-92a4-4807-9e21-eb089cb5f89a",
+  "6b1f43f1-3220-4a92-b1cd-aac769edeca6",
+  "5f1fe442-51e8-4542-87a5-5991d41992f6",
+  "af95ea0c-147a-4c95-8454-f35a285785bf"
+];
 let token=null;
 async function auth(){
   try{
@@ -44,15 +54,23 @@ async function pay(){
   }
   document.getElementById('log').innerText='Dang pay...\n'+BACKEND;
   try{
-    const r=await fetch(BACKEND,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uids:UIDS,amount:1})});
+    const r=await fetch(BACKEND,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({uids:UIDS,amount:1})
+    });
     const t=await r.text();
     let d;
     try{d=JSON.parse(t)}catch{document.getElementById('log').innerText='RAW:\n'+t;return}
     let txt='success:'+(d.successCount||0)+'/'+d.total+'\n\n';
-    (d.results||[]).forEach(x=>{txt+=(x.success?'OK':'FAIL')+' '+x.uid.substring(0,6)+' '+(x.error||'')+'\n'});
+    (d.results||[]).forEach(x=>{
+      txt+=(x.success?'OK':'FAIL')+' '+x.uid.substring(0,6)+' '+(x.error||'')+'\n'
+    });
     document.getElementById('log').innerText=txt;
     document.getElementById('st').innerText=txt.split('\n')[0]
-  }catch(e){document.getElementById('log').innerText='Loi:'+e.message}
+  }catch(e){
+    document.getElementById('log').innerText='Loi:'+e.message
+  }
 }
 </script>
 </body>
