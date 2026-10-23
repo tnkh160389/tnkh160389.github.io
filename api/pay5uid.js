@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  // --- A. BỔ SUNG CORS HEADERS GIẢI QUYẾT LỖI FAILED TO FETCH ---
+  // CORS Headers chống lỗi Failed to fetch từ GitHub Pages sang Vercel
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*'); 
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -8,18 +8,15 @@ export default async function handler(req, res) {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
-  // Xử lý request Preflight (OPTIONS) từ trình duyệt
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // 1. Chỉ cho phép phương thức POST
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ success: false, error: "Method Not Allowed" });
   }
 
-  // 2. Kiểm tra API Key Mainnet của Lovely Animals
   const PI_API_KEY = process.env.PI_API_KEY;
   if (!PI_API_KEY) {
     return res.status(500).json({ success: false, error: "Missing PI_API_KEY in environment variables" });
@@ -28,14 +25,12 @@ export default async function handler(req, res) {
   const body = req.body || {};
   let targetList = [];
 
-  // 3. Ưu tiên danh sách UID gửi từ Frontend
   if (Array.isArray(body.uids) && body.uids.length > 0) {
     targetList = body.uids.map(u => typeof u === 'string' ? u.trim() : '').filter(Boolean);
   } else if (typeof body.uid === 'string' && body.uid.trim()) {
     targetList = [body.uid.trim()];
   }
 
-  // 4. Danh sách 5 UID chuẩn mặc định của Lovely Animals (Fallback)
   const DEFAULT_LOVELY_5UIDS = [
     "b38efa68-4778-4f60-b62e-f76793d64668",
     "b4acb64e-92a4-4807-9e21-eb089cb5f89a",
@@ -50,7 +45,6 @@ export default async function handler(req, res) {
 
   const amount = Number(body.amount) || 1;
 
-  // Hàm bổ trợ gọi API Pi Network với API Key Mainnet
   async function piFetch(path, method = "GET", payload) {
     const r = await fetch(`https://api.minepi.com${path}`, {
       method,
@@ -72,7 +66,6 @@ export default async function handler(req, res) {
     return { ok: r.ok, status: r.status, data };
   }
 
-  // Hàm xử lý tự động giải phóng giao dịch bị treo (ongoing payment)
   async function cancelOngoingIfFound(piErrorData) {
     try {
       let paymentId = null;
@@ -106,7 +99,6 @@ export default async function handler(req, res) {
 
   const results = [];
 
-  // Vòng lặp bắn A2U cho từng UID trong danh sách
   for (let i = 0; i < targetList.length; i++) {
     const uid = targetList[i];
     let attempt = 0;
@@ -160,7 +152,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // --- B. VÁ ĐOẠN CODE BỊ THIẾU Ở CUỐI ---
     if (finalResult && finalResult.retrying) {
       const lastPayload = {
         payment: { 
@@ -183,7 +174,6 @@ export default async function handler(req, res) {
     }
   }
 
-  // 5. Kiểm tra kết quả tổng thể và trả về response
   const successCount = results.filter(r => r.success).length;
   const allOk = successCount === results.length;
 
