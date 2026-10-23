@@ -1,4 +1,10 @@
 export default async function handler(req, res) {
+  // CORS cho frontend tnkh160389.github.io
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") return res.status(200).end();
+
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ success: false, error: "Method Not Allowed" });
@@ -17,7 +23,7 @@ export default async function handler(req, res) {
     targetList = [body.uid.trim()];
   }
 
-  // Danh sách 5 UID chuẩn đã test thành công của hệ sinh thái
+  // Danh sách 5 UID chuẩn đã test thành công của Lovely Animals - khớp với index.html
   const DEFAULT_5UIDS = [
     "b38efa68-4778-4f60-b62e-f76793d64668",
     "b4acb64e-92a4-4807-9e21-eb089cb5f89a",
@@ -48,9 +54,9 @@ export default async function handler(req, res) {
   async function cancelOngoingIfFound(piErrorData) {
     try {
       let paymentId = null;
-      if (piErrorData && piErrorData.payment && piErrorData.payment.identifier) paymentId = piErrorData.payment.identifier;
-      if (!paymentId && piErrorData && piErrorData.identifier) paymentId = piErrorData.identifier;
-      if (!paymentId && piErrorData && piErrorData.ongoing_payment && piErrorData.ongoing_payment.identifier) paymentId = piErrorData.ongoing_payment.identifier;
+      if (piErrorData?.payment?.identifier) paymentId = piErrorData.payment.identifier;
+      if (!paymentId && piErrorData?.identifier) paymentId = piErrorData.identifier;
+      if (!paymentId && piErrorData?.ongoing_payment?.identifier) paymentId = piErrorData.ongoing_payment.identifier;
       
       if (!paymentId) {
         const inc = await piFetch("/v2/payments/incomplete", "GET");
@@ -61,13 +67,16 @@ export default async function handler(req, res) {
       }
 
       if (paymentId) {
-        let result = await piFetch(`/v2/payments/${paymentId}/complete`, "POST", { txid: "lovelyanimals_retry_complete" });
+        // Thử complete trước với txid dummy, nếu fail thì cancel
+        let result = await piFetch(`/v2/payments/${paymentId}/complete`, "POST", { txid: "lovelyanimals_retry_complete_"+Date.now() });
         if (!result.ok) {
           result = await piFetch(`/v2/payments/${paymentId}/cancel`, "POST");
         }
         return { cancelled: result.ok, paymentId, result: result.data };
       }
-    } catch (e) {}
+    } catch (e) {
+      console.log("cancelOngoing error", e.message);
+    }
     return { cancelled: false };
   }
 
@@ -83,8 +92,8 @@ export default async function handler(req, res) {
       const piPayload = {
         payment: {
           amount,
-          memo: `Lovely Animals Reward to @${uid.substring(0,6)} - ${i+1}/${targetList.length}`,
-          metadata: { target_uid: uid, batch_index: i, attempt },
+          memo: `Lovely Animals Reward ${uid.substring(0,6)} ${i+1}/${targetList.length}`, // memo ngắn gọn < 30 char cho Pi duyệt
+          metadata: { target_uid: uid, batch_index: i, attempt, source: "tnkh160389.github.io" },
           uid,
         },
       };
@@ -96,10 +105,11 @@ export default async function handler(req, res) {
         break;
       } else {
         const errStr = JSON.stringify(piResponse.data).toLowerCase();
-        if (errStr.includes("ongoing_payment_found") || errStr.includes("ongoing payment")) {
+        if (errStr.includes("ongoing_payment_found") || errStr.includes("ongoing payment") || errStr.includes("already have an ongoing")) {
           const cancelRes = await cancelOngoingIfFound(piResponse.data);
           if (cancelRes.cancelled) {
-            finalResult = { uid, success: false, retrying: true, cancelled_old: cancelRes.paymentId };
+            // Đã cancel được thì retry ngay vòng lặp tiếp theo, không break
+            await new Promise(r => setTimeout(r, 500));
             continue;
           } else {
             finalResult = { uid, success: false, error: "ongoing_payment_found but cannot cancel", details: piResponse.data, status: piResponse.status };
@@ -112,23 +122,19 @@ export default async function handler(req, res) {
       }
     }
 
-    if (finalResult && finalResult.retrying) {
-      const lastPayload = {
-        payment: { amount, memo: `Lovely Animals Retry ${uid}`, metadata: { target_uid: uid }, uid }
-      };
-      const lastResp = await piFetch("/v2/payments", "POST", lastPayload);
-      finalResult = lastResp.ok ? { uid, success: true, pi_response: lastResp.data } : { uid, success: false, error: "Failed after cancel", details: lastResp.data };
-    }
-
     results.push(finalResult);
-    if (i < targetList.length - 1) await new Promise(r => setTimeout(r, 800));
+    if (i < targetList.length - 1) await new Promise(r => setTimeout(r, 800)); // tránh rate limit Pi
   }
 
-  const allOk = results.every(r => r.success);
+  const successCount = results.filter(r => r.success).length;
+  const allOk = successCount === results.length;
+
+  // FIX QUAN TRỌNG: frontend đang đọc d.successCount và d.total -> phải trả đúng field này
   return res.status(allOk ? 200 : 207).json({
     success: allOk,
+    successCount, // <-- thêm cho frontend index.html đọc
     total: results.length,
     results,
-    note: "Lovely Animals A2U Batch Payment with auto cancel/retry ongoing payment"
+    note: "Lovely Animals A2U Batch Payment with auto cancel/retry ongoing payment - FIXED"
   });
 }
