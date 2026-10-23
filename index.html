@@ -1,221 +1,54 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-  <title>Lovely Animals - CHECK 1022</title>
-
+  <title>Lovely Animals - CHECK 1022 - FIXED</title>
   <style>
-    body {
-      margin: 0;
-      background: #0f0f0f;
-      color: #fff;
-      font-family: system-ui, sans-serif;
-    }
-
-    .box {
-      max-width: 380px;
-      margin: 20px auto;
-      padding: 15px;
-      text-align: center;
-    }
-
-    h3 {
-      margin: 0 0 10px;
-      color: #00ff88;
-    }
-
-    #status {
-      font-weight: bold;
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 6px;
-      background: #1a1a1a;
-      color: #00c851;
-      overflow-wrap: anywhere;
-    }
-
-    button {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 10px;
-      margin-bottom: 12px;
-      font-weight: bold;
-      font-size: 15px;
-      cursor: pointer;
-    }
-
-    #b1 {
-      background: #00c851;
-      color: #fff;
-    }
-
-    #b2 {
-      background: #7b2cbf;
-      color: #fff;
-    }
-
-    #log {
-      background: #000;
-      color: #00ff88;
-      font-family: monospace;
-      font-size: 12px;
-      text-align: left;
-      padding: 10px;
-      border-radius: 8px;
-      min-height: 120px;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      overflow: auto;
-      border: 1px solid #333;
-    }
+    body{margin:0;background:#0f0f0f;color:#fff;font-family:system-ui}
+    .box{max-width:380px;margin:20px auto;padding:15px;text-align:center}
+    h3{margin:0 0 10px;color:#00ff88}
+    #status{font-weight:bold;margin:10px 0;padding:10px;border-radius:6px;background:#1a1a1a;color:#00c851;overflow-wrap:anywhere}
+    button{width:100%;padding:14px;border:none;border-radius:10px;margin-bottom:12px;font-weight:bold;font-size:15px;cursor:pointer}
+    #b1{background:#00c851;color:#fff}#b2{background:#7b2cbf;color:#fff}
+    #log{background:#000;color:#00ff88;font-family:monospace;font-size:12px;text-align:left;padding:10px;border-radius:8px;min-height:140px;white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid #333}
   </style>
 </head>
-
 <body>
   <div class="box">
-    <h3>🌸 Lovely Animals<br>CHECK SDK & AUTH</h3>
-
+    <h3>🌸 Lovely Animals<br>CHECK 1022 - FIXED</h3>
     <div id="status">Đang kiểm tra Pi SDK...</div>
-
-    <button id="b1" type="button">
-      🔑 1. Kiểm tra / Cấp quyền Pi
-    </button>
-
-    <button id="b2" type="button">
-      🛑 2. Tạm khóa thanh toán để kiểm tra
-    </button>
-
-    <div id="log">Đang khởi tạo...</div>
+    <button id="b1">🔑 1. Kiểm tra / Cấp quyền Pi</button>
+    <button id="b2">🛑 2. Tạm khóa thanh toán để kiểm tra</button>
+    <div id="log">Đang khởi tạo...
+Domain: https://tnkh160389.github.io
+SDK: sandbox:true (Test-Pi)</div>
   </div>
-
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-
   <script>
-    const statusEl = document.getElementById('status');
-    const logEl = document.getElementById('log');
-    const button1 = document.getElementById('b1');
-    const button2 = document.getElementById('b2');
-
-    let piReady = false;
-    let authRunning = false;
-
-    function setLog(message) {
-      logEl.textContent = message;
-    }
-
-    function addLog(message) {
-      logEl.textContent += '\n' + message;
-    }
-
-    window.addEventListener('error', function (event) {
-      addLog(
-        'JS ERROR: ' +
-        (event.message || 'Không xác định') +
-        (event.filename ? '\nFile: ' + event.filename : '') +
-        (event.lineno ? '\nDòng: ' + event.lineno : '')
-      );
+    const statusEl=document.getElementById('status'),logEl=document.getElementById('log'),b1=document.getElementById('b1'),b2=document.getElementById('b2');
+    let piReady=false,authRunning=false;
+    function setLog(m){logEl.textContent=m}function addLog(m){logEl.textContent+='\n'+m}
+    window.addEventListener('error',e=>{addLog('JS ERROR:'+(e.message||'')+(e.filename?'\nFile:'+e.filename:'')+(e.lineno?'\nLine:'+e.lineno:''))});
+    window.addEventListener('unhandledrejection',e=>{addLog('PROMISE ERROR:'+String(e.reason))});
+    try{
+      if(typeof Pi==='undefined'){statusEl.textContent='PI SDK CHƯA TẢI';setLog('Không tìm thấy Pi - check sdk.minepi.com/pi-sdk.js');}
+      else{Pi.init({version:'2.0',sandbox:true});piReady=true;statusEl.textContent='SDK INIT OK - tnkh160389.github.io';setLog('Pi SDK đã khởi tạo.\nMôi trường: Sandbox (Test-Pi)\nDomain: https://tnkh160389.github.io\nBấm nút 1 để test auth.');}
+    }catch(err){statusEl.textContent='SDK INIT ERROR';setLog('Lỗi init:'+err.message);}
+    b1.addEventListener('click',async()=>{
+      addLog('\n[NÚT 1] Bấm kiểm tra');
+      if(!piReady){statusEl.textContent='SDK CHƯA SẴN SÀNG';return}
+      if(authRunning){addLog('Auth đang chạy...');return}
+      authRunning=true;b1.disabled=true;b1.textContent='⏳ Đang xác thực...';statusEl.textContent='Đang gọi Pi.authenticate...';
+      try{
+        addLog('Yêu cầu quyền: username, payments, wallet_address...');
+        const auth=await Pi.authenticate(['username','payments','wallet_address'],p=>{addLog('Payment callback:'+JSON.stringify(p))});
+        if(!auth||!auth.user)throw new Error('Không có user');
+        statusEl.textContent='AUTH OK';setLog('Xác thực thành công\nUsername:'+(auth.user.username||'N/A')+'\nUID:'+auth.user.uid+'\n\nĐây chỉ là check SDK, chưa phải A2U.');
+      }catch(e){statusEl.textContent='AUTH ERROR';addLog('LỖI:'+(e.message||String(e)));}
+      finally{authRunning=false;b1.disabled=false;b1.textContent='🔑 1. Kiểm tra / Cấp quyền Pi';}
     });
-
-    window.addEventListener('unhandledrejection', function (event) {
-      addLog('PROMISE ERROR: ' + String(event.reason));
-    });
-
-    // Khởi tạo Pi SDK
-    try {
-      if (typeof window.Pi === 'undefined') {
-        statusEl.textContent = 'PI SDK CHƯA TẢI';
-        setLog(
-          'Không tìm thấy đối tượng Pi.\n' +
-          'Kiểm tra kết nối và việc tải sdk.minepi.com/pi-sdk.js.'
-        );
-      } else {
-        Pi.init({
-          version: '2.0',
-          sandbox: true
-        });
-
-        piReady = true;
-        statusEl.textContent = 'SDK INIT OK';
-        setLog(
-          'Pi SDK đã khởi tạo.\n' +
-          'Môi trường SDK: Sandbox.\n' +
-          'Bấm nút 1 để kiểm tra xác thực.'
-        );
-      }
-    } catch (error) {
-      statusEl.textContent = 'SDK INIT ERROR';
-      setLog('Lỗi khởi tạo SDK: ' + (error.message || String(error)));
-    }
-
-    // Nút 1: kiểm tra xác thực với Pi
-    button1.addEventListener('click', async function () {
-      addLog('\n[NÚT 1] Đã nhận thao tác bấm.');
-
-      if (!piReady || typeof window.Pi === 'undefined') {
-        statusEl.textContent = 'SDK CHƯA SẴN SÀNG';
-        addLog('Không thể gọi Pi.authenticate vì SDK chưa sẵn sàng.');
-        return;
-      }
-
-      if (authRunning) {
-        addLog('Yêu cầu xác thực trước vẫn đang chạy.');
-        return;
-      }
-
-      authRunning = true;
-      button1.disabled = true;
-      button1.textContent = '⏳ Đang xác thực...';
-      statusEl.textContent = 'Đang gọi Pi.authenticate...';
-
-      try {
-        addLog('Đang yêu cầu quyền username, payments, wallet_address...');
-
-        const auth = await Pi.authenticate(
-          ['username', 'payments', 'wallet_address'],
-          function (payment) {
-            addLog(
-              'Payment callback: ' +
-              JSON.stringify(payment)
-            );
-          }
-        );
-
-        if (!auth || !auth.user) {
-          throw new Error('Pi không trả về thông tin user.');
-        }
-
-        statusEl.textContent = 'AUTH OK';
-        setLog(
-          'Xác thực thành công.\n' +
-          'Username: ' + (auth.user.username || 'N/A') + '\n' +
-          'UID: ' + (auth.user.uid || 'N/A') + '\n\n' +
-          'Đây là kết quả xác thực SDK, ' +
-          'không phải xác nhận giao dịch A2U.'
-        );
-      } catch (error) {
-        statusEl.textContent = 'AUTH ERROR';
-        addLog(
-          '\nLỖI XÁC THỰC:\n' +
-          (error && error.message ? error.message : String(error))
-        );
-      } finally {
-        authRunning = false;
-        button1.disabled = false;
-        button1.textContent = '🔑 1. Kiểm tra / Cấp quyền Pi';
-      }
-    });
-
-    // Tạm không gửi tiền khi đang chẩn đoán
-    button2.addEventListener('click', function () {
-      statusEl.textContent = 'THANH TOÁN ĐANG TẠM KHÓA';
-      addLog(
-        '\n[NÚT 2] Chưa gửi request thanh toán.\n' +
-        'Đang chờ xác nhận nút 1 hoạt động đúng.'
-      );
-    });
+    b2.addEventListener('click',()=>{statusEl.textContent='THANH TOÁN TẠM KHÓA';addLog('\n[NÚT 2] Chưa gửi pay - đang chờ Bước 1 OK');});
   </script>
 </body>
 </html>
