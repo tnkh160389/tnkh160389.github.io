@@ -1,75 +1,137 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lovely Animals - 5 UIDs Fixed</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lovely Animals - Mainnet A2U Payment</title>
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <style>
-body{font-family:Arial;text-align:center;padding:15px;background:#fff;color:#000}
-.btn{width:100%;padding:14px;border-radius:12px;border:0;font-size:15px;font-weight:bold;margin:6px 0;cursor:pointer}
-.green{background:#22c55e;color:#fff}
-.purple{background:#7c3aed;color:#fff}
-.box{background:#000;color:#0f8;text-align:left;padding:10px;border-radius:10px;font-family:monospace;white-space:pre-wrap;font-size:12px;min-height:100px}
+  body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f9fafb; color: #111; }
+  .container { max-width: 480px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .btn { width: 100%; padding: 14px; border-radius: 12px; border: 0; font-size: 16px; font-weight: bold; margin: 10px 0; cursor: pointer; transition: opacity 0.2s; }
+  .btn:active { opacity: 0.8; }
+  .green { background: #22c55e; color: white; }
+  .purple { background: #7c3aed; color: white; }
+  .box { background: #0b0f19; color: #00ff88; text-align: left; padding: 14px; border-radius: 12px; font-family: monospace; white-space: pre-wrap; min-height: 140px; margin-top: 15px; font-size: 13px; overflow-x: auto; }
+  #status { font-size: 15px; margin-bottom: 15px; padding: 8px; border-radius: 8px; background: #fef3c7; color: #92400e; font-weight: bold; }
 </style>
 </head>
 <body>
-<h3>Lovely Animals - 5 UIDs Fixed</h3>
-<div id="st" style="color:#b45309;font-weight:bold">Domain: tnkh160389.github.io - sandbox:true</div>
-<button class="btn green" onclick="auth()">1. Cap quyen vi</button>
-<button class="btn purple" onclick="pay()">2. Pay 5 UIDs</button>
-<div id="log" class="box">Chua chay...
-UIDs:
-b38efa68-4778-4f60-b62e-f76793d64668
-b4acb64e-92a4-4807-9e21-eb089cb5f89a
-6b1f43f1-3220-4a92-b1cd-aac769edeca6
-5f1fe442-51e8-4542-87a5-5991d41992f6
-af95ea0c-147a-4c95-8454-f35a285785bf
+<div class="container">
+  <h2>🐾 Lovely Animals</h2>
+  <div id="status">Trạng thái: Sẵn sàng kết nối Mainnet</div>
+  
+  <button class="btn green" onclick="capQuyen()">🔑 1. Xác thực ví & Đăng nhập</button>
+  <button class="btn purple" onclick="payLovelyAnimals()">🚀 2. Thanh toán A2U (5 UIDs)</button>
+  
+  <div id="log" class="box">Chờ thao tác từ người dùng...
+Environment: Mainnet (sandbox: false)
+Domain: Đã verified chuẩn xác</div>
 </div>
+
 <script>
-Pi.init({version:"2.0",sandbox:true});
-const BACKEND='https://tnkh160389.github.io/api/pay5uid';
-const UIDS=[
+// Khởi tạo Pi SDK ở chế độ Mainnet
+Pi.init({ version: "2.0", sandbox: false });
+
+// Thay thế URL Backend Vercel thực tế của Lovely Animals vào đây
+const BACKEND_URL = 'https://link-backend-lovelyanimals.vercel.app/api/pay'; 
+
+// 5 UID chuẩn của Lovely Animals
+const LOVELY_ANIMALS_5UIDS = [
   "b38efa68-4778-4f60-b62e-f76793d64668",
   "b4acb64e-92a4-4807-9e21-eb089cb5f89a",
   "6b1f43f1-3220-4a92-b1cd-aac769edeca6",
   "5f1fe442-51e8-4542-87a5-5991d41992f6",
   "af95ea0c-147a-4c95-8454-f35a285785bf"
 ];
-let token=null;
-async function auth(){
-  try{
-    const a=await Pi.authenticate(['username','payments','wallet_address'],()=>{});
-    token=a.accessToken;
-    document.getElementById('log').innerText='Auth OK\nUID:'+a.user.uid;
-    document.getElementById('st').innerText='OK '+a.user.uid.substring(0,8);
-  }catch(e){alert(e.message)}
-}
-async function pay(){
-  if(!token){
-    try{
-      const a=await Pi.authenticate(['username','payments','wallet_address'],()=>{});
-      token=a.accessToken
-    }catch(e){return alert('Chua login')}
+
+let accessToken = null;
+const SCOPES = ['username', 'payments', 'wallet_address'];
+
+async function capQuyen() {
+  const logBox = document.getElementById('log');
+  const statusBox = document.getElementById('status');
+  logBox.innerText = "Đang yêu cầu cấp quyền Pi SDK...";
+  
+  try {
+    const auth = await Pi.authenticate(SCOPES, onIncompletePaymentFound);
+    accessToken = auth.accessToken;
+    logBox.innerText = `Xác thực thành công!\nUID: ${auth.user.uid}\nUsername: ${auth.user.username}`;
+    statusBox.style.background = "#dcfce7";
+    statusBox.style.color = "#166534";
+    statusBox.innerText = `Đã kết nối: ${auth.user.username}`;
+  } catch (e) {
+    logBox.innerText = "Lỗi xác thực: " + e.message;
+    statusBox.style.background = "#fee2e2";
+    statusBox.style.color = "#991b1b";
+    statusBox.innerText = "Xác thực thất bại!";
   }
-  document.getElementById('log').innerText='Dang pay...\n'+BACKEND;
-  try{
-    const r=await fetch(BACKEND,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({uids:UIDS,amount:1})
+}
+
+function onIncompletePaymentFound(payment) {
+  console.log("Phát hiện giao dịch treo:", payment);
+}
+
+async function payLovelyAnimals() {
+  const logBox = document.getElementById('log');
+  const statusBox = document.getElementById('status');
+
+  if (!accessToken) {
+    try {
+      logBox.innerText = "Đang tự động xác thực Pi...";
+      const auth = await Pi.authenticate(SCOPES, onIncompletePaymentFound);
+      accessToken = auth.accessToken;
+    } catch (e) {
+      return alert("Chưa đăng nhập Pi Network!");
+    }
+  }
+
+  logBox.innerText = "Đang tiến hành gửi lệnh thanh toán A2U hàng loạt lên Mainnet...\nVui lòng chờ phản hồi từ Backend.";
+  
+  try {
+    const response = await fetch(BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        accessToken: accessToken,
+        uids: LOVELY_ANIMALS_5UIDS,
+        amount: 1
+      })
     });
-    const t=await r.text();
-    let d;
-    try{d=JSON.parse(t)}catch{document.getElementById('log').innerText='RAW:\n'+t;return}
-    let txt='success:'+(d.successCount||0)+'/'+d.total+'\n\n';
-    (d.results||[]).forEach(x=>{
-      txt+=(x.success?'OK':'FAIL')+' '+x.uid.substring(0,6)+' '+(x.error||'')+'\n'
+
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      logBox.innerText = "RAW Response từ Backend:\n" + text;
+      return;
+    }
+
+    if (data.results === undefined) {
+      logBox.innerText = "Phản hồi backend:\n" + JSON.stringify(data, null, 2);
+      return;
+    }
+
+    let report = `Kết quả xử lý: ${data.success ? 'THÀNH CÔNG TOÀN BỘ' : 'CÓ LỖI XẢY RA'}\n\n`;
+    data.results.forEach((res, index) => {
+      const shortUid = res.uid ? res.uid.substring(0, 8) + '...' : `UID #${index+1}`;
+      if (res.success) {
+        report += `[OK] ${shortUid} -> Thành công\n`;
+      } else {
+        report += `[FAIL] ${shortUid} -> Lỗi: ${res.error || 'Unknown'}\n`;
+      }
     });
-    document.getElementById('log').innerText=txt;
-    document.getElementById('st').innerText=txt.split('\n')[0]
-  }catch(e){
-    document.getElementById('log').innerText='Loi:'+e.message
+
+    logBox.innerText = report;
+    statusBox.innerText = data.success ? "5/5 THANH CONG TRÊN MAINNET!" : "Có UID cần kiểm tra lại";
+    if(data.success) {
+      statusBox.style.background = "#dcfce7";
+      statusBox.style.color = "#166534";
+    }
+
+  } catch (e) {
+    logBox.innerText = "Lỗi kết nối API: " + e.message;
   }
 }
 </script>
