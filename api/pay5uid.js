@@ -1,4 +1,18 @@
 export default async function handler(req, res) {
+  // --- A. BỔ SUNG CORS HEADERS GIẢI QUYẾT LỖI FAILED TO FETCH ---
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*'); 
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  // Xử lý request Preflight (OPTIONS) từ trình duyệt
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   // 1. Chỉ cho phép phương thức POST
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
@@ -66,7 +80,6 @@ export default async function handler(req, res) {
       if (!paymentId && piErrorData?.identifier) paymentId = piErrorData.identifier;
       if (!paymentId && piErrorData?.ongoing_payment?.identifier) paymentId = piErrorData.ongoing_payment.identifier;
       
-      // Nếu không tìm thấy paymentId trực tiếp từ lỗi, quét danh sách incomplete
       if (!paymentId) {
         const inc = await piFetch("/v2/payments/incomplete", "GET");
         const list = inc.data?.incomplete_payments || inc.data || [];
@@ -76,12 +89,10 @@ export default async function handler(req, res) {
       }
 
       if (paymentId) {
-        // Thử complete trước với txid của Lovely Animals
         let result = await piFetch(`/v2/payments/${paymentId}/complete`, "POST", { 
           txid: "lovelyanimals_retry_complete" 
         });
         
-        // Nếu complete thất bại thì hủy bỏ (cancel)
         if (!result.ok) {
           result = await piFetch(`/v2/payments/${paymentId}/cancel`, "POST");
         }
@@ -120,12 +131,11 @@ export default async function handler(req, res) {
       } else {
         const errStr = JSON.stringify(piResponse.data).toLowerCase();
         
-        // Bắt sự cố ongoing_payment để tự động hủy/hoàn tất đơn treo và retry
         if (errStr.includes("ongoing_payment_found") || errStr.includes("ongoing payment")) {
           const cancelRes = await cancelOngoingIfFound(piResponse.data);
           if (cancelRes.cancelled) {
             finalResult = { uid, success: false, retrying: true, cancelled_old: cancelRes.paymentId };
-            continue; // Bấm tiếp vòng lặp để retry
+            continue;
           } else {
             finalResult = { 
               uid, 
@@ -150,7 +160,38 @@ export default async function handler(req, res) {
       }
     }
 
-    // Thực hiện gọi lại lần cuối nếu vừa tự giải phóng đơn treo
+    // --- B. VÁ ĐOẠN CODE BỊ THIẾU Ở CUỐI ---
     if (finalResult && finalResult.retrying) {
       const lastPayload = {
-        payment: {
+        payment: { 
+          amount, 
+          memo: `Lovely Animals Retry ${uid.substring(0, 6)}`, 
+          metadata: { target_uid: uid, is_retry: true }, 
+          uid 
+        }
+      };
+      const lastResp = await piFetch("/v2/payments", "POST", lastPayload);
+      finalResult = lastResp.ok 
+        ? { uid, success: true, pi_response: lastResp.data } 
+        : { uid, success: false, error: "Failed after resolving ongoing payment", details: lastResp.data };
+    }
+
+    results.push(finalResult);
+    
+    if (i < targetList.length - 1) {
+      await new Promise(r => setTimeout(r, 800));
+    }
+  }
+
+  // 5. Kiểm tra kết quả tổng thể và trả về response
+  const successCount = results.filter(r => r.success).length;
+  const allOk = successCount === results.length;
+
+  return res.status(allOk ? 200 : 207).json({
+    success: allOk,
+    successCount,
+    total: results.length,
+    results,
+    note: "Lovely Animals Mainnet A2U Batch Payment Complete"
+  });
+}
