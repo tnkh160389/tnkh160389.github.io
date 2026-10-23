@@ -1,30 +1,28 @@
 export default async function handler(req, res) {
-  // CORS cho frontend tnkh160389.github.io
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.status(200).end();
-
+  // 1. Chỉ cho phép phương thức POST
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ success: false, error: "Method Not Allowed" });
   }
 
+  // 2. Kiểm tra API Key Mainnet của Lovely Animals
   const PI_API_KEY = process.env.PI_API_KEY;
   if (!PI_API_KEY) {
-    return res.status(500).json({ success: false, error: "Missing PI_API_KEY" });
+    return res.status(500).json({ success: false, error: "Missing PI_API_KEY in environment variables" });
   }
 
   const body = req.body || {};
   let targetList = [];
+
+  // 3. Ưu tiên danh sách UID gửi từ Frontend
   if (Array.isArray(body.uids) && body.uids.length > 0) {
     targetList = body.uids.map(u => typeof u === 'string' ? u.trim() : '').filter(Boolean);
   } else if (typeof body.uid === 'string' && body.uid.trim()) {
     targetList = [body.uid.trim()];
   }
 
-  // Danh sách 5 UID chuẩn đã test thành công của Lovely Animals - khớp với index.html
-  const DEFAULT_5UIDS = [
+  // 4. Danh sách 5 UID chuẩn mặc định của Lovely Animals (Fallback)
+  const DEFAULT_LOVELY_5UIDS = [
     "b38efa68-4778-4f60-b62e-f76793d64668",
     "b4acb64e-92a4-4807-9e21-eb089cb5f89a",
     "6b1f43f1-3220-4a92-b1cd-aac769edeca6",
@@ -32,9 +30,13 @@ export default async function handler(req, res) {
     "af95ea0c-147a-4c95-8454-f35a285785bf"
   ];
   
-  if (targetList.length === 0) targetList = DEFAULT_5UIDS;
+  if (targetList.length === 0) {
+    targetList = DEFAULT_LOVELY_5UIDS;
+  }
+
   const amount = Number(body.amount) || 1;
 
+  // Hàm bổ trợ gọi API Pi Network với API Key Mainnet
   async function piFetch(path, method = "GET", payload) {
     const r = await fetch(`https://api.minepi.com${path}`, {
       method,
@@ -45,12 +47,18 @@ export default async function handler(req, res) {
       },
       body: payload ? JSON.stringify(payload) : undefined,
     });
+    
     const text = await r.text();
     let data;
-    try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text.slice(0,3000)}; }
+    try { 
+      data = text ? JSON.parse(text) : {}; 
+    } catch { 
+      data = { raw: text.slice(0, 3000) }; 
+    }
     return { ok: r.ok, status: r.status, data };
   }
 
+  // Hàm xử lý tự động giải phóng giao dịch bị treo (ongoing payment)
   async function cancelOngoingIfFound(piErrorData) {
     try {
       let paymentId = null;
@@ -58,6 +66,7 @@ export default async function handler(req, res) {
       if (!paymentId && piErrorData?.identifier) paymentId = piErrorData.identifier;
       if (!paymentId && piErrorData?.ongoing_payment?.identifier) paymentId = piErrorData.ongoing_payment.identifier;
       
+      // Nếu không tìm thấy paymentId trực tiếp từ lỗi, quét danh sách incomplete
       if (!paymentId) {
         const inc = await piFetch("/v2/payments/incomplete", "GET");
         const list = inc.data?.incomplete_payments || inc.data || [];
@@ -67,21 +76,26 @@ export default async function handler(req, res) {
       }
 
       if (paymentId) {
-        // Thử complete trước với txid dummy, nếu fail thì cancel
-        let result = await piFetch(`/v2/payments/${paymentId}/complete`, "POST", { txid: "lovelyanimals_retry_complete_"+Date.now() });
+        // Thử complete trước với txid của Lovely Animals
+        let result = await piFetch(`/v2/payments/${paymentId}/complete`, "POST", { 
+          txid: "lovelyanimals_retry_complete" 
+        });
+        
+        // Nếu complete thất bại thì hủy bỏ (cancel)
         if (!result.ok) {
           result = await piFetch(`/v2/payments/${paymentId}/cancel`, "POST");
         }
         return { cancelled: result.ok, paymentId, result: result.data };
       }
     } catch (e) {
-      console.log("cancelOngoing error", e.message);
+      console.error("Lỗi khi xử lý ongoing payment:", e);
     }
     return { cancelled: false };
   }
 
   const results = [];
 
+  // Vòng lặp bắn A2U cho từng UID trong danh sách
   for (let i = 0; i < targetList.length; i++) {
     const uid = targetList[i];
     let attempt = 0;
@@ -92,8 +106,8 @@ export default async function handler(req, res) {
       const piPayload = {
         payment: {
           amount,
-          memo: `Lovely Animals Reward ${uid.substring(0,6)} ${i+1}/${targetList.length}`, // memo ngắn gọn < 30 char cho Pi duyệt
-          metadata: { target_uid: uid, batch_index: i, attempt, source: "tnkh160389.github.io" },
+          memo: `Lovely Animals Reward to @${uid.substring(0, 6)} - ${i + 1}/${targetList.length}`,
+          metadata: { target_uid: uid, batch_index: i, attempt, env: "mainnet" },
           uid,
         },
       };
@@ -105,36 +119,38 @@ export default async function handler(req, res) {
         break;
       } else {
         const errStr = JSON.stringify(piResponse.data).toLowerCase();
-        if (errStr.includes("ongoing_payment_found") || errStr.includes("ongoing payment") || errStr.includes("already have an ongoing")) {
+        
+        // Bắt sự cố ongoing_payment để tự động hủy/hoàn tất đơn treo và retry
+        if (errStr.includes("ongoing_payment_found") || errStr.includes("ongoing payment")) {
           const cancelRes = await cancelOngoingIfFound(piResponse.data);
           if (cancelRes.cancelled) {
-            // Đã cancel được thì retry ngay vòng lặp tiếp theo, không break
-            await new Promise(r => setTimeout(r, 500));
-            continue;
+            finalResult = { uid, success: false, retrying: true, cancelled_old: cancelRes.paymentId };
+            continue; // Bấm tiếp vòng lặp để retry
           } else {
-            finalResult = { uid, success: false, error: "ongoing_payment_found but cannot cancel", details: piResponse.data, status: piResponse.status };
+            finalResult = { 
+              uid, 
+              success: false, 
+              error: "ongoing_payment_found but cannot resolve", 
+              details: piResponse.data, 
+              status: piResponse.status 
+            };
             break;
           }
         } else {
-          finalResult = { uid, success: false, error: "Pi API rejected", details: piResponse.data, status: piResponse.status, attempts: attempt };
+          finalResult = { 
+            uid, 
+            success: false, 
+            error: "Pi API rejected", 
+            details: piResponse.data, 
+            status: piResponse.status, 
+            attempts: attempt 
+          };
           break;
         }
       }
     }
 
-    results.push(finalResult);
-    if (i < targetList.length - 1) await new Promise(r => setTimeout(r, 800)); // tránh rate limit Pi
-  }
-
-  const successCount = results.filter(r => r.success).length;
-  const allOk = successCount === results.length;
-
-  // FIX QUAN TRỌNG: frontend đang đọc d.successCount và d.total -> phải trả đúng field này
-  return res.status(allOk ? 200 : 207).json({
-    success: allOk,
-    successCount, // <-- thêm cho frontend index.html đọc
-    total: results.length,
-    results,
-    note: "Lovely Animals A2U Batch Payment with auto cancel/retry ongoing payment - FIXED"
-  });
-}
+    // Thực hiện gọi lại lần cuối nếu vừa tự giải phóng đơn treo
+    if (finalResult && finalResult.retrying) {
+      const lastPayload = {
+        payment: {
