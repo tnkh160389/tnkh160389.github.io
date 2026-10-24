@@ -31,12 +31,13 @@ export default async function handler(req, res) {
     targetList = [body.uid.trim()];
   }
 
+  // Bộ 5 UID Mainnet chuẩn xác 100% của Lovely Animals (Đã cập nhật mới nhất)
   const DEFAULT_LOVELY_5UIDS = [
-    "b38efa68-4778-4f60-b62e-f76793d64668",
-    "b4acb64e-92a4-4807-9e21-eb089cb5f89a",
-    "6b1f43f1-3220-4a92-b1cd-aac769edeca6",
-    "5f1fe442-51e8-4542-87a5-5991d41992f6",
-    "af95ea0c-147a-4c95-8454-f35a285785bf"
+    "42e4b976-a279-43e3-afc1-3f3e75db0e16", // thuongsheva
+    "42e3690a-ca9d-4726-bc94-43abd7cecb60", // UID 2
+    "6d7867e6-9abb-4f76-9cb4-85e146eee486", // phithuong07
+    "6b6080ea-081c-4e34-8b81-91fd173b7c36", // UID 4
+    "a46fa764-7725-4f23-bbfc-554b358e33d3"  // dttngan123
   ];
   
   if (targetList.length === 0) {
