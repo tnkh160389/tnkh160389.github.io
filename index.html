@@ -1,53 +1,79 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lovely - Ban Rieng Le Tung UID</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lovely Animals - 5 UIDs Final FIXED - Copy Spa Khai Hoan</title>
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-<style>body{font-family:monospace;background:#0a0a0a;color:#0f0;padding:12px} .btn{width:100%;padding:12px;border-radius:8px;border:0;font-weight:bold;margin:6px 0;cursor:pointer;font-size:13px} .green{background:#22c55e;color:#fff} .blue{background:#3b82f6;color:#fff} .purple{background:#7c3aed;color:#fff} .orange{background:#f59e0b;color:#000} .pink{background:#ec4899;color:#fff} #log{background:#000;color:#0f8;padding:10px;border-radius:8px;white-space:pre-wrap;height:420px;overflow:auto;border:1px solid #0f0;font-size:11px}</style>
+<style>
+body{font-family:Arial;text-align:center;padding:20px;background:#fff;color:#000}
+.btn{width:100%;padding:14px;border-radius:12px;border:0;font-size:16px;font-weight:bold;margin:8px 0;cursor:pointer}
+.green{background:#22c55e;color:white}
+.purple{background:#7c3aed;color:white}
+.box{background:#000;color:#00ff88;text-align:left;padding:12px;border-radius:12px;font-family:monospace;white-space:pre-wrap;min-height:120px;margin-top:10px;font-size:13px}
+</style>
 </head>
 <body>
-<h3>🐾 Lovely - Ban Rieng Le Tung UID - Vi 100% Testnet GCW05...KVCVY</h3>
-<div id="status" style="color:#eab308">Bam tung nut de test - De biet dua nao feature_not_available</div>
-<button class="btn green" id="btnLogin">1. Xac thuc Pi SDK (Sandbox) - thuongsheva</button>
-<button class="btn blue" id="btn1">2a. Ban UID 1: thuongsheva ADMIN 0e16 (42e4b976...)</button>
-<button class="btn purple" id="btn2">2b. Ban UID 2: nguyenanhuann113113 (42e3690a...)</button>
-<button class="btn orange" id="btn3">2c. Ban UID 3: phithuong07 (6d7867e6...)</button>
-<button class="btn green" id="btn4">2d. Ban UID 4: thuongsheva01 (6b6080ea...)</button>
-<button class="btn pink" id="btn5">2e. Ban UID 5: dttngan123 (a46fa764...)</button>
-<div id="log">San sang...
-Vi app: GCW05...KVCVY 100% Testnet
-5 UID da cap quyen vi xong 4/4
-Bam nut 1 xac thuc truoc, roi bam tung nut 2a-2e de ban rieng le
-De xem log that feature_not_available hay not_found tung dua
+<h2>Lovely Animals - Pay 5 UIDs - Copy Spa Khai Hoan SUCCESS</h2>
+<div id="status" style="color:#eab308;font-weight:bold;margin:10px">FIXED from Spa Khai Hoan - tnkh160389.github.io - Vi 100% Testnet GCW05...KVCVY</div>
+<button class="btn green" onclick="capQuyen()">🔑 1. Cap quyen vi (wallet_address)</button>
+<button class="btn purple" onclick="pay5()">🚀 2. Pay 5 UIDs Lovely</button>
+<div id="log" class="box">Chua chay...
+Domain: tnkh160389.github.io (copy Spa npt170289.github.io)
+Backend: tnkh160389githubio.vercel.app (copy spakhaihoan.vercel.app)
+Vi app: GCW05...KVCVY 100% Testnet - da tung pay qua console 5 vi
+5 UID Lovely:
+- 42e4b976... thuongsheva ADMIN 0e16
+- 42e3690a... nguyenanhuann113113
+- 6d7867e6... phithuong07
+- 6b6080ea... thuongsheva01
+- a46fa764... dttngan123
 </div>
 <script>
-Pi.init({version:"2.0",sandbox:true});
-const BACKEND='https://tnkh160389githubio.vercel.app/api/pay5uid';
-const UIDS=[
-{id:"btn1",username:"thuongsheva_ADMIN_0e16",uid:"42e4b976-a279-43e3-afc1-3f3e75db0e16"},
-{id:"btn2",username:"nguyenanhuann113113",uid:"42e3690a-ca9d-4726-bc94-43abd7cecb60"},
-{id:"btn3",username:"phithuong07",uid:"6d7867e6-9abb-4f76-9cb4-85e146eee486"},
-{id:"btn4",username:"thuongsheva01",uid:"6b6080ea-081c-4e34-8b81-91fd173b7c36"},
-{id:"btn5",username:"dttngan123",uid:"a46fa764-7725-4f23-bbfc-554b358e33d3"}
+// COPY Y CHANG SPA KHAI HOAN - sandbox:false - da pay thanh cong
+Pi.init({version:"2.0", sandbox:false});
+const BACKEND_URL = 'https://tnkh160389githubio.vercel.app/api/pay5uid';
+const DEFAULT_5UIDS = [
+ "42e4b976-a279-43e3-afc1-3f3e75db0e16",
+ "42e3690a-ca9d-4726-bc94-43abd7cecb60",
+ "6d7867e6-9abb-4f76-9cb4-85e146eee486",
+ "6b6080ea-081c-4e34-8b81-91fd173b7c36",
+ "a46fa764-7725-4f23-bbfc-554b358e33d3"
 ];
-let token=null;
-function log(m){const el=document.getElementById('log');el.textContent+="\n["+new Date().toLocaleTimeString()+"] "+m;el.scrollTop=el.scrollHeight;console.log(m);}
-function onIncomplete(p){log("Incomplete: "+JSON.stringify(p));}
-document.getElementById('btnLogin').onclick=async()=>{
-log("Xac thuc thuongsheva...");try{const a=await Pi.authenticate(['username','payments','wallet_address'],onIncomplete);token=a.accessToken;log("✅ AUTH OK: "+a.user.username+" UID:"+a.user.uid);document.getElementById('status').innerText="Da xac thuc: "+a.user.username;}catch(e){log("❌ Auth fail: "+(e.message||JSON.stringify(e)));}};
-UIDS.forEach(u=>{
-document.getElementById(u.id).onclick=async()=>{
-log(`🚀 BAN RIENG LE: ${u.username} ${u.uid}`);try{
-const r=await fetch(BACKEND,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:u.uid, amount:1, accessToken:token})});
-const res=await r.json();
-log(`Response status: ${r.status} body: ${JSON.stringify(res).slice(0,800)}`);
-if(res.results && res.results[0] && res.results[0].success){log(`✅ ${u.username} THANH CONG THAT! PID:${res.results[0].paymentId}`);}
-else if(res.success){log(`✅ ${u.username} THANH CONG THAT!`);}
-else{log(`❌ ${u.username} THAT BAI THAT: ${(res.results?res.results[0].error:res.error)||JSON.stringify(res).slice(0,300)}`);}
-}catch(e){log(`❌ Loi mang ${u.username}: ${e.message}`);}
-};
-});
+let accessToken = null;
+const SCOPES = ['username','payments','wallet_address'];
+async function capQuyen(){
+  try{
+    const auth = await Pi.authenticate(SCOPES, ()=>{});
+    accessToken = auth.accessToken;
+    document.getElementById('log').innerText = `Da cap quyen!\nUID: ${auth.user.uid}\nUsername: ${auth.user.username}\nAccessToken: ${auth.accessToken.slice(0,20)}...`;
+    document.getElementById('status').innerText = `OK ${auth.user.uid.substring(0,8)}... - ${auth.user.username}`;
+  }catch(e){ alert(e.message); document.getElementById('log').innerText = "Cap quyen fail: "+e.message; }
+}
+async function pay5(){
+  if(!accessToken){
+    try{ const auth = await Pi.authenticate(SCOPES, ()=>{}); accessToken = auth.accessToken; }catch(e){ return alert("Chua login Pi - Bam nut 1 truoc"); }
+  }
+  document.getElementById('log').innerText = "Dang pay 5 UID Lovely...\nBackend: "+BACKEND_URL+"\nVi app: GCW05...KVCVY 100% Testnet";
+  try{
+    const r = await fetch(BACKEND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({accessToken,uids:DEFAULT_5UIDS,amount:1})});
+    const text = await r.text();
+    let data;
+    try{ data = JSON.parse(text); } catch { document.getElementById('log').innerText = "RAW Response:\n"+text; return; }
+    if(data.successCount === undefined){
+      document.getElementById('log').innerText = "Backend tra ve:\n"+JSON.stringify(data,null,2);
+      document.getElementById('status').innerText = "Check backend log";
+      return;
+    }
+    let txt = `successCount: ${data.successCount}/${data.total}\n${data.success? '✅ THANH CONG THAT!':'❌ THAT BAI'} \n\n`;
+    data.results?.forEach(x=>{ txt+= `${x.success?'✅ OK':'❌ FAIL'} ${x.uid.substring(0,8)}... ${x.success?'OK':(x.error||JSON.stringify(x.details||'').slice(0,100))} \n`; });
+    document.getElementById('log').innerText = txt;
+    document.getElementById('status').innerText = `${data.successCount}/${data.total} THANH CONG THAT - Vi GCW05...KVCVY`;
+    if(data.successCount===5){
+      document.getElementById('log').innerText += "\n🎉 DU 5 GIAO DICH! Quay lai develop.pi, dong do 'The paired Testnet app needs...' se mat, nut Submit sang tim! Bam Submit de PCT duyet vi Mainnet cho lovelyanimals.pi 10 Pi thang!";
+    }
+  }catch(e){ document.getElementById('log').innerText = "Loi: "+e.message; }
+}
 </script>
 </body>
 </html>
