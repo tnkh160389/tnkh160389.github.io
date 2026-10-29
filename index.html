@@ -3,73 +3,80 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lovely Animals - Mainnet A2U Payment</title>
+<title>Lovely Animals - Fresh Sandbox Test</title>
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <style>
   body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f9fafb; color: #111; }
   .container { max-width: 480px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-  .btn { width: 100%; padding: 14px; border-radius: 12px; border: 0; font-size: 16px; font-weight: bold; margin: 10px 0; cursor: pointer; transition: opacity 0.2s; }
+  .btn { width: 100%; padding: 14px; border-radius: 12px; border: 0; font-size: 16px; font-weight: bold; margin: 8px 0; cursor: pointer; transition: opacity 0.2s; }
   .btn:active { opacity: 0.8; }
   .green { background: #22c55e; color: white; }
   .purple { background: #7c3aed; color: white; }
+  .orange { background: #f59e0b; color: white; }
   .box { background: #0b0f19; color: #00ff88; text-align: left; padding: 14px; border-radius: 12px; font-family: monospace; white-space: pre-wrap; min-height: 140px; margin-top: 15px; font-size: 13px; overflow-x: auto; }
   #status { font-size: 15px; margin-bottom: 15px; padding: 8px; border-radius: 8px; background: #fef3c7; color: #92400e; font-weight: bold; }
 </style>
 </head>
 <body>
 <div class="container">
-  <h2>🐾 Lovely Animals</h2>
-  <div id="status">Trạng thái: Sẵn sàng kết nối Mainnet</div>
+  <h2>🐾 Lovely Animals (Fresh Test)</h2>
+  <div id="status">Trạng thái: Sẵn sàng làm mới</div>
   
-  <button class="btn green" onclick="capQuyen()">🔑 1. Xác thực ví & Đăng nhập</button>
-  <button class="btn purple" onclick="payLovelyAnimals()">🚀 2. Thanh toán A2U (5 UIDs)</button>
+  <button class="btn orange" onclick="resetSandboxSession()">🔄 1. Xóa Cache & Đăng nhập mới</button>
+  <button class="btn green" onclick="capQuyen()">🔑 2. Xác thực Sandbox</button>
+  <button class="btn purple" onclick="payLovelyAnimals()">🚀 3. Thanh toán Sandbox</button>
   
-  <div id="log" class="box">Chờ thao tác từ người dùng...
-Environment: Mainnet (sandbox: false)
-Domain: Đã gom đủ 5/5 UID Mainnet</div>
+  <div id="log" class="box">Chờ thao tác làm mới phiên...</div>
 </div>
 
 <script>
-// Khởi tạo Pi SDK Mainnet
-Pi.init({ version: "2.0", sandbox: false });
+Pi.init({ version: "2.0", sandbox: true });
 
-// Đường dẫn Backend Vercel của Lovely Animals
 const BACKEND_URL = 'https://tnkh160389githubio.vercel.app/api/pay5uid';
-
-// Đã cập nhật đủ 5 UID Mainnet chuẩn xác 100%
-const LOVELY_ANIMALS_5UIDS = [
-  "42e4b976-a279-43e3-afc1-3f3e75db0e16", // thuongsheva
-  "42e3690a-ca9d-4726-bc94-43abd7cecb60", // UID 2
-  "6d7867e6-9abb-4f76-9cb4-85e146eee486", // phithuong07
-  "6b6080ea-081c-4e34-8b81-91fd173b7c36", // UID 4
-  "a46fa764-7725-4f23-bbfc-554b358e33d3"  // dttngan123
-];
 
 let accessToken = null;
 const SCOPES = ['username', 'payments', 'wallet_address'];
 
+// HÀM LÀM SẠCH CACHE VÀ ÉP LẤY PHIÊN MỚI
+function resetSandboxSession() {
+  const logBox = document.getElementById('log');
+  const statusBox = document.getElementById('status');
+
+  try {
+    // Xóa sạch toàn bộ bộ nhớ đệm lưu trữ trong Pi Browser WebView
+    localStorage.clear();
+    sessionStorage.clear();
+    accessToken = null;
+
+    logBox.innerText = "🧹 Đã xóa sạch Cache & Session cũ thành công!\nBây giờ hãy bấm nút '2. Xác thực Sandbox' để nhận UID mới.";
+    statusBox.style.background = "#fef3c7";
+    statusBox.style.color = "#92400e";
+    statusBox.innerText = "Đã dọn cache, sẵn sàng lấy UID mới";
+  } catch (e) {
+    logBox.innerText = "Lỗi khi xóa cache: " + e.message;
+  }
+}
+
 async function capQuyen() {
   const logBox = document.getElementById('log');
   const statusBox = document.getElementById('status');
-  logBox.innerText = "Đang yêu cầu cấp quyền Pi SDK...";
+  logBox.innerText = "Đang yêu cầu cấp phiên xác thực mới từ Pi SDK...";
   
   try {
     const auth = await Pi.authenticate(SCOPES, onIncompletePaymentFound);
     accessToken = auth.accessToken;
-    logBox.innerText = `Xác thực thành công!\nUID: ${auth.user.uid}\nUsername: ${auth.user.username}`;
+    
+    logBox.innerText = `Xác thực thành công phiên mới!\nUID hiện tại: ${auth.user.uid}\nUsername: ${auth.user.username}`;
     statusBox.style.background = "#dcfce7";
     statusBox.style.color = "#166534";
     statusBox.innerText = `Đã kết nối: ${auth.user.username}`;
   } catch (e) {
     logBox.innerText = "Lỗi xác thực: " + e.message;
-    statusBox.style.background = "#fee2e2";
-    statusBox.style.color = "#991b1b";
-    statusBox.innerText = "Xác thực thất bại!";
   }
 }
 
 function onIncompletePaymentFound(payment) {
-  console.log("Phát hiện giao dịch treo:", payment);
+  console.log("Incomplete payment:", payment);
 }
 
 async function payLovelyAnimals() {
@@ -77,16 +84,10 @@ async function payLovelyAnimals() {
   const statusBox = document.getElementById('status');
 
   if (!accessToken) {
-    try {
-      logBox.innerText = "Đang tự động xác thực Pi...";
-      const auth = await Pi.authenticate(SCOPES, onIncompletePaymentFound);
-      accessToken = auth.accessToken;
-    } catch (e) {
-      return alert("Chưa đăng nhập Pi Network!");
-    }
+    return alert("Vui lòng xác thực hoặc làm mới phiên trước!");
   }
 
-  logBox.innerText = "Đang tiến hành gửi lệnh thanh toán A2U hàng loạt (5 UIDs) lên Mainnet...\nVui lòng chờ phản hồi từ Backend.";
+  logBox.innerText = "Đang gửi yêu cầu thanh toán Sandbox với UID mới...";
   
   try {
     const response = await fetch(BACKEND_URL, {
@@ -94,47 +95,16 @@ async function payLovelyAnimals() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         accessToken: accessToken,
-        uids: LOVELY_ANIMALS_5UIDS,
         amount: 1
       })
     });
 
-    const text = await response.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      logBox.innerText = "RAW Response từ Backend:\n" + text;
-      return;
-    }
-
-    if (data.results === undefined) {
-      logBox.innerText = "Phản hồi backend:\n" + JSON.stringify(data, null, 2);
-      return;
-    }
-
-    let report = `Kết quả xử lý: ${data.success ? 'THÀNH CÔNG TOÀN BỘ' : 'CÓ LỖI XẢY RA'}\n\n`;
-    data.results.forEach((res, index) => {
-      const shortUid = res.uid ? res.uid.substring(0, 8) + '...' : `UID #${index+1}`;
-      if (res.success) {
-        report += `[OK] ${shortUid} -> Thành công\n`;
-      } else {
-        report += `[FAIL] ${shortUid} -> Lỗi: ${res.error || 'Unknown'}\n`;
-      }
-    });
-
-    logBox.innerText = report;
-    statusBox.innerText = data.success ? "5/5 THANH CONG TRÊN MAINNET!" : "Có UID cần kiểm tra lại";
-    if(data.success) {
-      statusBox.style.background = "#dcfce7";
-      statusBox.style.color = "#166534";
-    }
+    const data = await response.json();
+    logBox.innerText = "Kết quả phản hồi:\n" + JSON.stringify(data, null, 2);
+    statusBox.innerText = data.success ? "THANH TOÁN THÀNH CÔNG!" : "Đã nhận phản hồi từ API";
 
   } catch (e) {
-    logBox.innerText = "Lỗi kết nối API:\n" + e.message;
-    statusBox.style.background = "#fee2e2";
-    statusBox.style.color = "#991b1b";
-    statusBox.innerText = "Lỗi kết nối Server!";
+    logBox.innerText = "Lỗi kết nối Server: " + e.message;
   }
 }
 </script>
