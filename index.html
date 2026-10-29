@@ -3,109 +3,90 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lovely Animals - Fresh Sandbox Test</title>
+<title>Lovely Animals - Fresh Sandbox Final</title>
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <style>
-  body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f9fafb; color: #111; }
-  .container { max-width: 480px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-  .btn { width: 100%; padding: 14px; border-radius: 12px; border: 0; font-size: 16px; font-weight: bold; margin: 8px 0; cursor: pointer; transition: opacity 0.2s; }
-  .btn:active { opacity: 0.8; }
-  .green { background: #22c55e; color: white; }
-  .purple { background: #7c3aed; color: white; }
-  .orange { background: #f59e0b; color: white; }
-  .box { background: #0b0f19; color: #00ff88; text-align: left; padding: 14px; border-radius: 12px; font-family: monospace; white-space: pre-wrap; min-height: 140px; margin-top: 15px; font-size: 13px; overflow-x: auto; }
-  #status { font-size: 15px; margin-bottom: 15px; padding: 8px; border-radius: 8px; background: #fef3c7; color: #92400e; font-weight: bold; }
+  body { font-family: system-ui; text-align: center; padding: 16px; background: #f9fafb; }
+  .container { max-width: 500px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 18px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
+  .btn { width: 100%; padding: 14px; border-radius: 12px; border: 0; font-size: 15px; font-weight: 800; margin: 8px 0; cursor: pointer; }
+  .green { background: #22c55e; color: white; } .purple { background: #7c3aed; color: white; }
+  .orange { background: #f59e0b; color: white; } .red { background: #ef4444; color: white; }
+  .box { background: #0b0f19; color: #00ff88; text-align: left; padding: 14px; border-radius: 12px; font-family: monospace; white-space: pre-wrap; min-height: 160px; margin-top: 15px; font-size: 12px; overflow-x: auto; }
+  #status { padding: 10px; border-radius: 10px; background: #fef3c7; color: #92400e; font-weight: 700; }
 </style>
 </head>
 <body>
 <div class="container">
-  <h2>🐾 Lovely Animals (Fresh Test)</h2>
-  <div id="status">Trạng thái: Sẵn sàng làm mới</div>
-  
-  <button class="btn orange" onclick="resetSandboxSession()">🔄 1. Xóa Cache & Đăng nhập mới</button>
+  <h2>🐾 Lovely Animals - Fresh</h2>
+  <div id="status">Sẵn sàng - 5 UID chuẩn đã lock</div>
+  <button class="btn red" onclick="resetSandboxSession()">🔄 1. XÓA CACHE PI BROWSER (Fix 207)</button>
   <button class="btn green" onclick="capQuyen()">🔑 2. Xác thực Sandbox</button>
-  <button class="btn purple" onclick="payLovelyAnimals()">🚀 3. Thanh toán Sandbox</button>
-  
-  <div id="log" class="box">Chờ thao tác làm mới phiên...</div>
+  <button class="btn purple" onclick="payLovelyAnimals()">🚀 3. Thanh toán 5 UID</button>
+  <div id="log" class="box">5 UID CHUẨN:
+- 42e4b976-a279-43e3-afc1-3f3e75db0e16
+- 42e3690a-ca9d-4726-bc94-43abd7cecb60
+- 6d7867e6-9abb-4f76-9cb4-85e146eee486
+- 6b6080ea-081c-4e34-8b81-91fd173b7c36
+- a46fa764-7725-4f23-bbfc-554b358e33d3
+</div>
 </div>
 
 <script>
 Pi.init({ version: "2.0", sandbox: true });
 
-const BACKEND_URL = 'https://tnkh160389.github.io.vercel.app/api/pay5uid';
+const BACKEND_URL = 'https://tnkh160389.vercel.app/api/pay5uid';
+// Nếu Vercel bro là tnkh160389githubio.vercel.app thì đổi lại dòng trên
 
-let accessToken = null;
+const FINAL_5_UIDS = [
+  "42e4b976-a279-43e3-afc1-3f3e75db0e16",
+  "42e3690a-ca9d-4726-bc94-43abd7cecb60",
+  "6d7867e6-9abb-4f76-9cb4-85e146eee486",
+  "6b6080ea-081c-4e34-8b81-91fd173b7c36",
+  "a46fa764-7725-4f23-bbfc-554b358e33d3"
+];
 const SCOPES = ['username', 'payments', 'wallet_address'];
+let currentUser = null;
 
-// HÀM LÀM SẠCH CACHE VÀ ÉP LẤY PHIÊN MỚI
-function resetSandboxSession() {
-  const logBox = document.getElementById('log');
-  const statusBox = document.getElementById('status');
-
-  try {
-    // Xóa sạch toàn bộ bộ nhớ đệm lưu trữ trong Pi Browser WebView
-    localStorage.clear();
-    sessionStorage.clear();
-    accessToken = null;
-
-    logBox.innerText = "🧹 Đã xóa sạch Cache & Session cũ thành công!\nBây giờ hãy bấm nút '2. Xác thực Sandbox' để nhận UID mới.";
-    statusBox.style.background = "#fef3c7";
-    statusBox.style.color = "#92400e";
-    statusBox.innerText = "Đã dọn cache, sẵn sàng lấy UID mới";
-  } catch (e) {
-    logBox.innerText = "Lỗi khi xóa cache: " + e.message;
-  }
+function log(m){ document.getElementById('log').innerText += "\n"+m; }
+function setStatus(msg, ok=false){
+  const s=document.getElementById('status'); s.innerText=msg;
+  s.style.background=ok?"#dcfce7":"#fef3c7"; s.style.color=ok?"#166534":"#92400e";
 }
 
-async function capQuyen() {
-  const logBox = document.getElementById('log');
-  const statusBox = document.getElementById('status');
-  logBox.innerText = "Đang yêu cầu cấp phiên xác thực mới từ Pi SDK...";
-  
-  try {
+function resetSandboxSession(){
+  try{ localStorage.clear(); sessionStorage.clear(); currentUser=null; }catch(e){}
+  if('caches' in window){ caches.keys().then(ns=>ns.forEach(n=>caches.delete(n))); }
+  if(indexedDB.databases){ indexedDB.databases().then(dbs=>dbs.forEach(db=>indexedDB.deleteDatabase(db.name))); }
+  log("🧹 Đã xóa cache Pi Browser...");
+  setTimeout(()=> location.replace(location.href.split('?')[0]+'?cb='+Date.now()), 900);
+}
+
+async function capQuyen(){
+  document.getElementById('log').innerText="Đang xác thực...";
+  try{
     const auth = await Pi.authenticate(SCOPES, onIncompletePaymentFound);
-    accessToken = auth.accessToken;
-    
-    logBox.innerText = `Xác thực thành công phiên mới!\nUID hiện tại: ${auth.user.uid}\nUsername: ${auth.user.username}`;
-    statusBox.style.background = "#dcfce7";
-    statusBox.style.color = "#166534";
-    statusBox.innerText = `Đã kết nối: ${auth.user.username}`;
-  } catch (e) {
-    logBox.innerText = "Lỗi xác thực: " + e.message;
-  }
+    currentUser = auth.user;
+    setStatus("Đã kết nối: "+auth.user.username, true);
+    document.getElementById('log').innerText = `✅ OK: ${auth.user.username}\nUID: ${auth.user.uid}\nSẵn sàng pay 5 UID chuẩn`;
+  }catch(e){ document.getElementById('log').innerText="❌ Auth fail: "+e.message; }
 }
 
-function onIncompletePaymentFound(payment) {
-  console.log("Incomplete payment:", payment);
-}
+function onIncompletePaymentFound(p){ console.log(p); return p; }
 
-async function payLovelyAnimals() {
-  const logBox = document.getElementById('log');
-  const statusBox = document.getElementById('status');
-
-  if (!accessToken) {
-    return alert("Vui lòng xác thực hoặc làm mới phiên trước!");
-  }
-
-  logBox.innerText = "Đang gửi yêu cầu thanh toán Sandbox với UID mới...";
-  
-  try {
-    const response = await fetch(BACKEND_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        accessToken: accessToken,
-        amount: 1
-      })
+async function payLovelyAnimals(){
+  if(!currentUser){ alert("Bấm nút 2 trước!"); return; }
+  log("🚀 Gửi "+FINAL_5_UIDS.length+" UID tới "+BACKEND_URL);
+  try{
+    const r = await fetch(BACKEND_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({uids: FINAL_5_UIDS, amount:1})
     });
-
-    const data = await response.json();
-    logBox.innerText = "Kết quả phản hồi:\n" + JSON.stringify(data, null, 2);
-    statusBox.innerText = data.success ? "THANH TOÁN THÀNH CÔNG!" : "Đã nhận phản hồi từ API";
-
-  } catch (e) {
-    logBox.innerText = "Lỗi kết nối Server: " + e.message;
-  }
+    const data = await r.json();
+    log("STATUS "+r.status+"\n"+JSON.stringify(data,null,2));
+    if(data.successCount===5) setStatus(`THÀNH CÔNG 5/5 🎉`, true);
+    else setStatus(`${data.successCount||0}/${data.total||5} - check Request Logs`, false);
+  }catch(e){ log("❌ Fetch lỗi: "+e.message); }
 }
 </script>
 </body>
