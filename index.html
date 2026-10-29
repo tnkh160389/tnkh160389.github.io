@@ -3,27 +3,100 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Kich Quyen Vi - Lovely</title>
+<title>Lovely Animals - Combined Grant + Pay</title>
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-<style>body{font-family:Arial;text-align:center;padding:20px} .btn{width:100%;padding:18px;border-radius:12px;border:0;font-size:18px;font-weight:bold;background:#22c55e;color:#fff;margin:10px 0}</style>
+<style>
+body{font-family:Arial;text-align:center;padding:16px;background:#fff8f0}
+.container{max-width:520px;margin:0 auto;background:#fff;padding:20px;border-radius:18px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.btn{width:100%;padding:14px;border-radius:12px;border:0;font-weight:800;margin:8px 0;cursor:pointer;font-size:15px}
+.green{background:#22c55e;color:#fff}.purple{background:#7c3aed;color:#fff}.red{background:#ef4444;color:#fff}.orange{background:#f59e0b;color:#fff}
+.box{background:#000;color:#0f0;text-align:left;padding:12px;border-radius:12px;font-family:monospace;white-space:pre-wrap;min-height:160px;font-size:12px;overflow:auto}
+#status{font-weight:700;padding:10px;border-radius:10px;background:#fef3c7;color:#92400e;margin-bottom:10px}
+.small{font-size:11px;color:#666;margin-top:8px}
+</style>
 </head>
 <body>
-<h2>Kich Quyen Vi Cho TK Con</h2>
-<p>Mo bang Pi Browser - Bam nut duoi</p>
-<button class="btn" onclick="grant()">🔑 CAP QUYEN VI wallet_address</button>
-<div id="log" style="margin-top:20px;background:#000;color:#0f0;padding:10px;border-radius:8px;min-height:100px;white-space:pre-wrap;text-align:left">Chua chay...</div>
+<div class="container">
+<h2>🐾 Lovely Animals<br><small>Grant + Pay - Admin thuongsheva 0e16</small></h2>
+<div id="status">Sẵn sàng - 5 UID chuẩn Lovely</div>
+<button class="btn red" onclick="resetCache()">🔄 1. XÓA CACHE PI BROWSER</button>
+<button class="btn orange" onclick="grantWallet()">🔑 2. CẤP QUYỀN VÍ (Cho TK CON)</button>
+<button class="btn green" onclick="capQuyenAdmin()">🔑 3. Cấp quyền ví Chính chủ thuongsheva</button>
+<button class="btn purple" onclick="pay5()">🚀 4. Pay 5 UIDs Lovely (Chỉ Admin)</button>
+<div id="log" class="box">5 UID CHUẨN LOVELY (KHÔNG PHAI SPA):
+- 42e4b976-a279-43e3-afc1-3f3e75db0e16 (thuongsheva - ADMIN 0e16)
+- 42e3690a-ca9d-4726-bc94-43abd7cecb60
+- 6d7867e6-9abb-4f76-9cb4-85e146eee486
+- 6b6080ea-081c-4e34-8b81-91fd173b7c36
+- a46fa764-7725-4f23-bbfc-554b358e33d3 (dttngan123)
+Domain Pi Portal: tnkh160389.github.io
+Backend: tnkh160389githubio.vercel.app/api/pay5uid
+</div>
+<div class="small">TK Con chỉ cần bấm nút 2 - Admin thuongsheva bấm nút 3 + 4</div>
+</div>
 <script>
 Pi.init({version:"2.0", sandbox:true});
-async function grant(){
-  document.getElementById('log').innerText="Dang xin quyen vi...";
+const BACKEND_URL = 'https://tnkh160389githubio.vercel.app/api/pay5uid';
+const ADMIN_UID = "42e4b976-a279-43e3-afc1-3f3e75db0e16"; // thuongsheva 0e16
+const DEFAULT_5UIDS = [
+ "42e4b976-a279-43e3-afc1-3f3e75db0e16",
+ "42e3690a-ca9d-4726-bc94-43abd7cecb60",
+ "6d7867e6-9abb-4f76-9cb4-85e146eee486",
+ "6b6080ea-081c-4e34-8b81-91fd173b7c36",
+ "a46fa764-7725-4f23-bbfc-554b358e33d3"
+];
+let accessToken=null;
+const SCOPES=['username','payments','wallet_address'];
+function log(m){ document.getElementById('log').innerText+="\n"+m; }
+function setStatus(t,ok){ const s=document.getElementById('status'); s.innerText=t; s.style.background=ok?"#dcfce7":"#fef3c7"; s.style.color=ok?"#166534":"#92400e"; }
+function resetCache(){
+  try{ localStorage.clear(); sessionStorage.clear(); accessToken=null; }catch(e){}
+  if('caches' in window) caches.keys().then(k=>k.forEach(n=>caches.delete(n)));
+  if(indexedDB.databases) indexedDB.databases().then(d=>d.forEach(db=>indexedDB.deleteDatabase(db.name)));
+  document.getElementById('log').innerText="🧹 Đã xóa cache...";
+  setTimeout(()=>location.replace(location.href.split('?')[0]+'?cb='+Date.now()), 900);
+}
+async function grantWallet(){
+  document.getElementById('log').innerText="Đang cấp quyền ví cho TK CON...";
   try{
-    const auth = await Pi.authenticate(['username','payments','wallet_address'], ()=>{});
-    document.getElementById('log').innerText=`✅ DA CAP QUYEN VI THANH CONG!
+    const auth = await Pi.authenticate(SCOPES, ()=>{});
+    document.getElementById('log').innerText=`✅ TK CON ĐÃ CẤP QUYỀN VÍ!
 User: ${auth.user.username}
 UID: ${auth.user.uid}
-Scope: wallet_address da Allow
-Xong! Thoat va bao admin thuongsheva pay!`;
-  }catch(e){ document.getElementById('log').innerText="❌ Loi: "+e.message; }
+Scope: wallet_address Allow
+Xong 1 đứa! Cho đứa con tiếp theo vào!`;
+    setStatus(`TK Con ${auth.user.username} đã cấp quyền`, true);
+  }catch(e){ document.getElementById('log').innerText="❌ Lỗi: "+e.message; }
+}
+async function capQuyenAdmin(){
+  document.getElementById('log').innerText="Đang cấp quyền ví chính chủ thuongsheva...";
+  try{
+    const auth = await Pi.authenticate(SCOPES, ()=>{});
+    accessToken=auth.accessToken;
+    const isAdmin = auth.user.uid===ADMIN_UID;
+    document.getElementById('log').innerText=`${isAdmin?'✅ ĐÚNG':'❌ SAI'} ADMIN!
+User: ${auth.user.username}
+UID: ${auth.user.uid}
+Admin cần: ${ADMIN_UID} (thuongsheva 0e16)
+${isAdmin?'✅ ĐÚNG ADMIN - Sẵn sàng Pay 5 UIDs':'❌ KHÔNG PHẢI ADMIN thuongsheva'}
+AccessToken: ${accessToken.slice(0,20)}...`;
+    setStatus(isAdmin?`OK ADMIN ${auth.user.username}`:`SAI ADMIN - ${auth.user.username}`, isAdmin);
+  }catch(e){ document.getElementById('log').innerText="❌ Auth fail: "+e.message; }
+}
+async function pay5(){
+  if(!accessToken){
+    try{ const auth = await Pi.authenticate(SCOPES, ()=>{}); accessToken=auth.accessToken; }catch(e){ return alert("Bấm nút 3 Cấp quyền ví chính chủ trước!"); }
+  }
+  document.getElementById('log').innerText="🚀 Đang pay 5 UIDs Lovely...\n"+BACKEND_URL;
+  try{
+    const r = await fetch(BACKEND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({accessToken,uids:DEFAULT_5UIDS,amount:1})});
+    const data = await r.json();
+    let txt=`STATUS ${r.status} - successCount ${data.successCount}/${data.total}\n\n`;
+    data.results?.forEach(x=>{ txt+=`${x.success?'✅':'❌'} ${x.uid.slice(0,6)}... ${x.success?'OK':(x.error||'')} \n`; });
+    document.getElementById('log').innerText=txt+"\nFull:\n"+JSON.stringify(data,null,2);
+    if(data.successCount===5) setStatus("🎉 5/5 THÀNH CÔNG - LOVELY FIXED!", true);
+    else setStatus(`${data.successCount||0}/${data.total} - ${r.status===207?'207 Multi':''}`, false);
+  }catch(e){ document.getElementById('log').innerText="❌ Fetch lỗi: "+e.message; }
 }
 </script>
 </body>
