@@ -3,75 +3,136 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lovely - Cap Quyen Vi</title>
+<title>Lovely - Cap Quyen Vi V2</title>
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <style>
-body{font-family:system-ui;background:#1a1a2e;color:#fff;padding:20px;text-align:center}
-button{padding:16px 24px;margin:10px;font-size:18px;border-radius:12px;border:none;cursor:pointer;width:90%;max-width:400px}
+body{font-family:system-ui;background:#1a1a2e;color:#fff;padding:15px;text-align:center}
+button{padding:18px 20px;margin:12px 0;font-size:18px;border-radius:14px;border:none;cursor:pointer;width:95%;max-width:420px;display:block;margin-left:auto;margin-right:auto;font-weight:bold}
 #btnClear{background:#ff4757;color:#fff}
-#btnGrant{background:#7c4dff;color:#fff;font-weight:bold}
-#log{background:#000;color:#0f0;padding:12px;margin-top:20px;text-align:left;white-space:pre-wrap;border-radius:8px;min-height:200px;word-break:break-all}
+#btnGrant{background:#7c4dff;color:#fff}
+#btnGrant:disabled{background:#555;color:#aaa}
+#log{background:#000;color:#0f0;padding:12px;margin-top:15px;text-align:left;white-space:pre-wrap;border-radius:8px;min-height:250px;word-break:break-all;font-size:13px;overflow-y:auto;max-height:400px}
+.status{padding:10px;background:#2d2d5e;border-radius:8px;margin:10px 0}
 </style>
 </head>
 <body>
-<h2>🐾 Lovely Animals - Cấp Quyền Ví</h2>
-<p>Dùng <b>Pi Browser</b> mở link này bằng <b>tài khoản CON</b> cần nhận Pi</p>
-<button id="btnClear" onclick="clearAllCache()">1. XÓA CACHE (Nếu không hiện bảng Allow)</button>
-<button id="btnGrant" onclick="grantWallet()">2. CẤP QUYỀN VÍ - Hiện bảng trắng nút tím Allow</button>
-<div id="log">Sẵn sàng...
-- Mở bằng Pi Browser
-- Nhấn nút 2 để hiện bảng hệ thống Pi trắng-nút tím Allow wallet_address
+<h2>🐾 Lovely - Cấp Quyền Ví V2</h2>
+<div class="status" id="status">Đang kiểm tra Pi SDK...</div>
+<button id="btnClear">1. XÓA CACHE (Bấm nếu đơ)</button>
+<button id="btnGrant" disabled>2. CẤP QUYỀN VÍ - Chờ SDK...</button>
+<button id="btnTest" style="background:#00b894;color:#fff">3. TEST CLICK (Bấm thử có đơ không)</button>
+<div id="log">Log sẽ hiện ở đây...
 </div>
 <script>
 const logEl = document.getElementById('log');
+const statusEl = document.getElementById('status');
+const btnGrant = document.getElementById('btnGrant');
+const btnClear = document.getElementById('btnClear');
+const btnTest = document.getElementById('btnTest');
 function log(msg){
   const t = new Date().toLocaleTimeString();
-  logEl.textContent = `[${t}] ${msg}
-` + logEl.textContent;
-  console.log(msg);
+  const line = `[${t}] ${msg}`;
+  logEl.textContent = line + "\n" + logEl.textContent;
+  console.log(line);
 }
-function clearAllCache(){
-  log("Đang xóa cache...");
+function setStatus(msg, ok=false){
+  statusEl.textContent = msg;
+  statusEl.style.background = ok ? "#00b894" : "#e17055";
+}
+log("Trang vừa load, URL: " + location.href);
+log("UserAgent: " + navigator.userAgent.slice(0,80));
+// TEST CLICK luôn được
+btnTest.addEventListener('click', function(){
+  log("✅ NÚT TEST CLICK ĐƯỢC! Không đơ! Nếu nút này bấm được mà nút 2 không bấm được là do Pi SDK chưa sẵn sàng.");
+  alert("Nút bấm được rồi đó! Nếu nút 2 vẫn đơ thì đợi Pi SDK load xong.");
+});
+btnClear.addEventListener('click', async function(){
+  log("=== BẤM NÚT 1 XÓA CACHE ===");
   try{
     localStorage.clear();
     sessionStorage.clear();
-    if(window.caches){caches.keys().then(names=>names.forEach(n=>caches.delete(n)));}
-    if(window.indexedDB && indexedDB.databases){indexedDB.databases().then(dbs=>dbs.forEach(db=>indexedDB.deleteDatabase(db.name)));}
-    log("✅ Đã xóa localStorage, sessionStorage, caches, indexedDB");
-    log("Reload sau 1s với ?cb mới...");
-    setTimeout(()=>{location.href = location.pathname + "?cb=" + Date.now();},1000);
-  }catch(e){log("❌ Lỗi xóa cache: "+e.message);}
+    log("Cleared localStorage + sessionStorage");
+    if(window.caches){
+      const names = await caches.keys();
+      for(let n of names){ await caches.delete(n); log("Deleted cache: "+n); }
+    }
+    if(window.indexedDB && indexedDB.databases){
+      try{
+        const dbs = await indexedDB.databases();
+        for(let db of dbs){ if(db.name) { indexedDB.deleteDatabase(db.name); log("Deleted DB: "+db.name);} }
+      }catch(e){ log("IndexedDB delete skip: "+e.message); }
+    }
+    log("✅ XONG! Reload sau 1.5s...");
+    setTimeout(()=>{ location.href = location.pathname + "?cb=" + Date.now(); },1500);
+  }catch(e){
+    log("❌ Lỗi xóa: " + e.message + " - Vẫn reload");
+    setTimeout(()=>{ location.reload(); },1000);
+  }
+});
+// Hàm khởi tạo Pi SDK - Chờ load
+function initPiSDK(){
+  log("Kiểm tra window.Pi...");
+  if(typeof window.Pi === 'undefined'){
+    log("❌ window.Pi chưa có! Đợi 1s thử lại...");
+    setStatus("Pi SDK chưa load, đang đợi...", false);
+    setTimeout(initPiSDK, 1000);
+    return;
+  }
+  log("✅ Có window.Pi rồi!");
+  try{
+    window.Pi.init({ version: "2.0", sandbox: true });
+    log("✅ Pi.init sandbox:true OK!");
+    setStatus("✅ Pi SDK sẵn sàng! Bấm nút 2 để hiện bảng trắng-nút tím Allow", true);
+    btnGrant.disabled = false;
+    btnGrant.textContent = "2. CẤP QUYỀN VÍ - Bấm để hiện bảng Allow";
+  }catch(e){
+    log("❌ Pi.init lỗi: " + e.message);
+    setStatus("Pi.init lỗi: " + e.message, false);
+  }
 }
-// QUAN TRỌNG: Lovely chưa duyệt nên phải sandbox:true
-const Pi = window.Pi;
-Pi.init({ version: "2.0", sandbox: true });
 function onIncompletePaymentFound(payment){
-  log("onIncompletePaymentFound: " + JSON.stringify(payment));
+  log("onIncompletePaymentFound: " + JSON.stringify(payment).slice(0,200));
 }
-async function grantWallet(){
-  log("Đang gọi Pi.authenticate(['username','payments','wallet_address'])...");
+btnGrant.addEventListener('click', async function(){
+  log("=== BẤM NÚT 2 CẤP QUYỀN VÍ ===");
+  if(typeof window.Pi === 'undefined'){
+    log("❌ Pi SDK chưa sẵn sàng! Không gọi được authenticate");
+    alert("Pi SDK chưa load! Hãy mở bằng Pi Browser, không phải Chrome!");
+    return;
+  }
+  log("Gọi Pi.authenticate(['username','payments','wallet_address'])...");
   log("Đợi bảng HỆ THỐNG Pi hiện lên (trắng-nút tím Allow)...");
+  setStatus("Đang gọi Pi... đợi bảng hệ thống hiện lên", false);
   try{
     const SCOPES = ['username','payments','wallet_address'];
-    const auth = await Pi.authenticate(SCOPES, onIncompletePaymentFound);
+    const auth = await window.Pi.authenticate(SCOPES, onIncompletePaymentFound);
     log("✅ AUTH THÀNH CÔNG!");
     log("UID: " + auth.user.uid);
     log("Username: " + auth.user.username);
-    log("AccessToken: " + auth.accessToken.slice(0,20) + "...");
-    log("🎉 Đã cấp quyền ví wallet_address cho app Lovely Animals!");
-    log("Tài khoản này đã sẵn sàng nhận A2U!");
-    alert("✅ Đã cấp quyền ví thành công!
-UID: " + auth.user.uid + "
-Giờ tài khoản này có thể nhận Pi A2U từ admin thuongsheva!");
+    log("Token: " + auth.accessToken.slice(0,25) + "...");
+    setStatus("✅ Đã cấp quyền ví cho UID: " + auth.user.uid, true);
+    alert("✅ THÀNH CÔNG!\nUID: " + auth.user.uid + "\nUsername: " + auth.user.username + "\nĐã cấp quyền wallet_address cho Lovely!");
   }catch(e){
-    log("❌ AUTH THẤT BẠI: " + (e.message || JSON.stringify(e)));
-    if(String(e).includes("user denied") || String(e).includes("declined")){
-      log("Bạn đã bấm Decline! Hãy bấm lại và bấm Allow trên bảng hệ thống!");
+    const errStr = (e && e.message) ? e.message : JSON.stringify(e);
+    log("❌ AUTH THẤT BẠI: " + errStr);
+    setStatus("Auth thất bại: " + errStr, false);
+    if(errStr.toLowerCase().includes("denied") || errStr.toLowerCase().includes("declined") || errStr.toLowerCase().includes("cancel")){
+      log("Bạn đã bấm Decline! Bấm lại nút 2 và bấm Allow màu tím!");
+      alert("Bạn đã bấm Decline! Bấm lại và chọn Allow màu tím nhé!");
+    } else if(errStr.includes("not in Pi Browser") || errStr.includes("Pi Browser")){
+      alert("Phải mở bằng Pi Browser! Đang mở bằng Chrome/Safari thì không được!");
+    } else {
+      alert("Lỗi: " + errStr);
     }
   }
-}
-// Auto log Pi SDK ready
-log("Pi SDK init sandbox:true xong. Sẵn sàng cấp quyền.");
+});
+// Bắt đầu kiểm tra SDK sau khi trang load
+window.addEventListener('load', function(){
+  log("Window load xong, bắt đầu init Pi SDK...");
+  setTimeout(initPiSDK, 500);
+});
+// Thử init ngay luôn phòng khi load rồi
+setTimeout(initPiSDK, 1000);
 </script>
 </body>
 </html>
