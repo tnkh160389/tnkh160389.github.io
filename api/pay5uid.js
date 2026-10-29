@@ -1,52 +1,120 @@
-export default async function handler(req,res){
-  res.setHeader('Access-Control-Allow-Origin','*');
-  res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization');
-  if(req.method==='OPTIONS') return res.status(200).end();
-  if(req.method==='GET') return res.status(200).json({ok:true, wallet:"GCW05...KVCVY 100% Testnet", single:true});
-  if(req.method!=='POST') return res.status(405).json({success:false, error:"Method Not Allowed"});
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers','X-CSRF-Token, X-Requested-With, Accept, Content-Length, Content-Type, Date, X-Api-Version, Authorization');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ success: false, error: "Method Not Allowed" });
 
   const PI_API_KEY = process.env.PI_API_KEY;
-  if(!PI_API_KEY) return res.status(500).json({success:false, error:"Missing PI_API_KEY"});
-
+  const ADMIN_UID = process.env.ADMIN_UID || "42e4b976-a279-43e3-afc1-3f3e75db0e16";
+  if (!PI_API_KEY) return res.status(500).json({ success: false, error: "Missing PI_API_KEY - PI_API_KEY cua Lovely" });
   const body = req.body || {};
-  // CHI NHAN 1 UID DUY NHAT - KHONG NHAN MANG
-  let uid = null;
-  if(body.uid) uid = String(body.uid).trim();
-  else if(Array.isArray(body.uids) && body.uids.length>0) uid = String(body.uids[0]).trim();
-  else if(body.target_uid) uid = String(body.target_uid).trim();
 
-  if(!uid) return res.status(400).json({success:false, error:"Missing uid - Gui {uid: '...'} 1 cai thoi"});
+  const accessToken = body.accessToken;
+  // CHECK ADMIN - COPY Y CHANG SPA KHAI HOAN DA PAY THANH CONG
+  if (!accessToken) return res.status(401).json({ error: "Thieu accessToken - Bam nut 1 Cap quyen truoc" });
+  try {
+    const meCheck = await fetch(`https://api.minepi.com/v2/me`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(r=>r.json());
+    console.log(`[AUTH] Me UID: ${meCheck.uid} vs ADMIN: ${ADMIN_UID}`);
+    if (meCheck.uid !== ADMIN_UID) {
+      console.log(`[AUTH] 403 Forbidden - ${meCheck.uid} is not admin`);
+      return res.status(403).json({ success:false, error:`403 Forbidden - Chi chinh chu thuongsheva 42e4b976...0e16 moi duoc pay` });
+    }
+  } catch(e) {
+    console.log(`[AUTH ERROR]`, e.message);
+    return res.status(401).json({ error: "accessToken khong hop le" });
+  }
 
-  const amount = Number(body.amount)||1;
+  let targetList = [];
+  if (Array.isArray(body.uids) && body.uids.length > 0) {
+    targetList = body.uids.map(u => typeof u === 'string' ? u.trim() : '').filter(Boolean);
+  } else if (typeof body.uid === 'string' && body.uid.trim()) {
+    targetList = [body.uid.trim()];
+  }
+  // 5 UID LOVELY - COPY TU SPA THANH CONG DOI UID
+  const DEFAULT_5UIDS = [
+    "42e4b976-a279-43e3-afc1-3f3e75db0e16",
+    "42e3690a-ca9d-4726-bc94-43abd7cecb60",
+    "6d7867e6-9abb-4f76-9cb4-85e146eee486",
+    "6b6080ea-081c-4e34-8b81-91fd173b7c36",
+    "a46fa764-7725-4f23-bbfc-554b358e33d3"
+  ];
+  if (targetList.length === 0) targetList = DEFAULT_5UIDS;
+  const amount = Number(body.amount) || 1;
 
-  async function piCall(path,method,payload){
-    const r = await fetch(`https://api.minepi.com${path}`,{
+  async function piFetch(path, method = "GET", payload) {
+    const r = await fetch(`https://api.minepi.com${path}`, {
       method,
-      headers:{ Authorization:`Key ${PI_API_KEY}`, "Content-Type":"application/json" },
-      body: payload?JSON.stringify(payload):undefined
+      headers: { Authorization: `Key ${PI_API_KEY}`, "Content-Type": "application/json", Accept: "application/json" },
+      body: payload ? JSON.stringify(payload) : undefined,
     });
-    const txt = await r.text();
-    let data; try{ data=JSON.parse(txt);}catch{ data={raw:txt.slice(0,1000)}; }
-    console.log(`[Pi SINGLE] ${method} ${path} UID ${uid.slice(0,8)} -> ${r.status} ${JSON.stringify(data).slice(0,800)}`);
-    return {ok:r.ok,status:r.status,data};
+    const text = await r.text();
+    let data; try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text.slice(0,3000)}; }
+    console.log(`[Pi] ${method} ${path} -> ${r.status} ${JSON.stringify(data).slice(0,600)}`);
+    return { ok: r.ok, status: r.status, data };
+  }
+  async function cancelOngoingIfFound(piErrorData) {
+    try {
+      let paymentId = null;
+      if (piErrorData?.payment?.identifier) paymentId = piErrorData.payment.identifier;
+      if (!paymentId && piErrorData?.identifier) paymentId = piErrorData.identifier;
+      if (!paymentId && piErrorData?.ongoing_payment?.identifier) paymentId = piErrorData.ongoing_payment.identifier;
+      if (!paymentId) {
+        const inc = await piFetch("/v2/payments/incomplete", "GET");
+        const list = inc.data?.incomplete_payments || inc.data || [];
+        if (Array.isArray(list) && list.length > 0) paymentId = list[0].identifier;
+      }
+      if (paymentId) {
+        let result = await piFetch(`/v2/payments/${paymentId}/complete`, "POST", { txid: "lovely_retry_complete" });
+        if (!result.ok) result = await piFetch(`/v2/payments/${paymentId}/cancel`, "POST");
+        return { cancelled: result.ok, paymentId, result: result.data };
+      }
+    } catch (e) { console.log("cancelOngoing error", e.message); }
+    return { cancelled: false };
   }
 
-  try{
-    const create = await piCall('/v2/payments','POST',{ amount, memo:`Lovely SINGLE ${uid.slice(0,4)}`, metadata:{ target_uid: uid, single:true }, uid });
-    if(!create.ok || !create.data.identifier) throw new Error(create.data.error?.message || create.data.error || JSON.stringify(create.data).slice(0,500));
-
-    const pid = create.data.identifier;
-    const approve = await piCall(`/v2/payments/${pid}/approve`,'POST',{});
-    if(!approve.ok) throw new Error(approve.data.error?.message || "Approve fail");
-
-    const fakeTxid = "b".repeat(64);
-    const complete = await piCall(`/v2/payments/${pid}/complete`,'POST',{ txid: fakeTxid });
-    if(!complete.ok) throw new Error(complete.data.error?.message || "Complete fail");
-
-    return res.status(200).json({ success:true, uid, paymentId: pid, single:true, api:"api.minepi.com" });
-  }catch(e){
-    console.error(`[SINGLE FAIL] ${uid}: ${e.message}`);
-    return res.status(207).json({ success:false, uid, error:e.message, single:true });
+  const results = [];
+  for (let i = 0; i < targetList.length; i++) {
+    const uid = targetList[i];
+    let attempt = 0; let finalResult = null;
+    while (attempt < 3) {
+      attempt++;
+      const piPayload = { payment: { amount, memo: `Lovely Animals Testnet A2U @${uid.substring(0,6)} - ${i+1}/${targetList.length} - Copy Spa Khai Hoan`, metadata: { target_uid: uid, batch_index: i, attempt, app: "lovelyanimals", env: "testnet", wallet: "GCW05...KVCVY" }, uid } };
+      const piResponse = await piFetch("/v2/payments", "POST", piPayload);
+      if (piResponse.ok) { 
+        console.log(`[PAY OK] ${i+1}/${targetList.length} UID ${uid} SUCCESS`);
+        finalResult = { uid, success: true, pi_response: piResponse.data, attempts: attempt }; 
+        break; 
+      }
+      else {
+        console.log(`[PAY FAIL] ${i+1}/${targetList.length} UID ${uid} Status ${piResponse.status}`, JSON.stringify(piResponse.data).slice(0,500));
+        const errStr = JSON.stringify(piResponse.data).toLowerCase();
+        if (errStr.includes("ongoing_payment_found") || errStr.includes("ongoing payment")) {
+          const cancelRes = await cancelOngoingIfFound(piResponse.data);
+          if (cancelRes.cancelled) { 
+            console.log(`[CANCEL OK] ${uid} cancelled ${cancelRes.paymentId}, retrying...`);
+            finalResult = { uid, success: false, retrying: true, cancelled_old: cancelRes.paymentId }; 
+            continue; 
+          }
+          else { finalResult = { uid, success: false, error: "ongoing_payment_found but cannot cancel", details: piResponse.data, status: piResponse.status }; break; }
+        } else { finalResult = { uid, success: false, error: "Pi API rejected", details: piResponse.data, status: piResponse.status, attempts: attempt }; break; }
+      }
+    }
+    if (finalResult && finalResult.retrying) {
+      const lastPayload = { payment: { amount, memo: `Lovely Retry ${uid}`, metadata: { target_uid: uid }, uid } };
+      const lastResp = await piFetch("/v2/payments", "POST", lastPayload);
+      console.log(`[RETRY] UID ${uid} ${lastResp.ok ? 'SUCCESS' : 'FAIL'} Status ${lastResp.status}`);
+      finalResult = lastResp.ok ? { uid, success: true, pi_response: lastResp.data } : { uid, success: false, error: "Failed after cancel", details: lastResp.data };
+    }
+    results.push(finalResult);
+    if (i < targetList.length - 1) await new Promise(r => setTimeout(r, 900));
   }
+
+  const successCount = results.filter(r=>r.success).length;
+  console.log(`[SUMMARY] Total: ${results.length}, Success: ${successCount}, Fail: ${results.length - successCount} - Vi app 100% Testnet GCW05...KVCVY`);
+  results.forEach(r => console.log(`-> UID ${r.uid.substring(0,8)}... : ${r.success ? '200 OK' : `FAIL ${r.status || ''} ${r.error || ''}`}`));
+
+  const allOk = results.every(r => r.success);
+  return res.status(allOk ? 200 : 207).json({ success: allOk, total: results.length, successCount, results, note: "Lovely Animals Testnet A2U - Copy Spa Khai Hoan SUCCESS - Vi 100% Testnet GCW05...KVCVY", wallet: "GCW05...KVCVY" });
 }
