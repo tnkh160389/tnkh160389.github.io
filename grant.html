@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lovely - Cap Quyen Vi</title>
+<script src="https://sdk.minepi.com/pi-sdk.js"></script>
+<style>
+body{font-family:system-ui;background:#1a1a2e;color:#fff;padding:20px;text-align:center}
+button{padding:16px 24px;margin:10px;font-size:18px;border-radius:12px;border:none;cursor:pointer;width:90%;max-width:400px}
+#btnClear{background:#ff4757;color:#fff}
+#btnGrant{background:#7c4dff;color:#fff;font-weight:bold}
+#log{background:#000;color:#0f0;padding:12px;margin-top:20px;text-align:left;white-space:pre-wrap;border-radius:8px;min-height:200px;word-break:break-all}
+</style>
+</head>
+<body>
+<h2>🐾 Lovely Animals - Cấp Quyền Ví</h2>
+<p>Dùng <b>Pi Browser</b> mở link này bằng <b>tài khoản CON</b> cần nhận Pi</p>
+<button id="btnClear" onclick="clearAllCache()">1. XÓA CACHE (Nếu không hiện bảng Allow)</button>
+<button id="btnGrant" onclick="grantWallet()">2. CẤP QUYỀN VÍ - Hiện bảng trắng nút tím Allow</button>
+<div id="log">Sẵn sàng...
+- Mở bằng Pi Browser
+- Nhấn nút 2 để hiện bảng hệ thống Pi trắng-nút tím Allow wallet_address
+</div>
+<script>
+const logEl = document.getElementById('log');
+function log(msg){
+  const t = new Date().toLocaleTimeString();
+  logEl.textContent = `[${t}] ${msg}
+` + logEl.textContent;
+  console.log(msg);
+}
+function clearAllCache(){
+  log("Đang xóa cache...");
+  try{
+    localStorage.clear();
+    sessionStorage.clear();
+    if(window.caches){caches.keys().then(names=>names.forEach(n=>caches.delete(n)));}
+    if(window.indexedDB && indexedDB.databases){indexedDB.databases().then(dbs=>dbs.forEach(db=>indexedDB.deleteDatabase(db.name)));}
+    log("✅ Đã xóa localStorage, sessionStorage, caches, indexedDB");
+    log("Reload sau 1s với ?cb mới...");
+    setTimeout(()=>{location.href = location.pathname + "?cb=" + Date.now();},1000);
+  }catch(e){log("❌ Lỗi xóa cache: "+e.message);}
+}
+// QUAN TRỌNG: Lovely chưa duyệt nên phải sandbox:true
+const Pi = window.Pi;
+Pi.init({ version: "2.0", sandbox: true });
+function onIncompletePaymentFound(payment){
+  log("onIncompletePaymentFound: " + JSON.stringify(payment));
+}
+async function grantWallet(){
+  log("Đang gọi Pi.authenticate(['username','payments','wallet_address'])...");
+  log("Đợi bảng HỆ THỐNG Pi hiện lên (trắng-nút tím Allow)...");
+  try{
+    const SCOPES = ['username','payments','wallet_address'];
+    const auth = await Pi.authenticate(SCOPES, onIncompletePaymentFound);
+    log("✅ AUTH THÀNH CÔNG!");
+    log("UID: " + auth.user.uid);
+    log("Username: " + auth.user.username);
+    log("AccessToken: " + auth.accessToken.slice(0,20) + "...");
+    log("🎉 Đã cấp quyền ví wallet_address cho app Lovely Animals!");
+    log("Tài khoản này đã sẵn sàng nhận A2U!");
+    alert("✅ Đã cấp quyền ví thành công!
+UID: " + auth.user.uid + "
+Giờ tài khoản này có thể nhận Pi A2U từ admin thuongsheva!");
+  }catch(e){
+    log("❌ AUTH THẤT BẠI: " + (e.message || JSON.stringify(e)));
+    if(String(e).includes("user denied") || String(e).includes("declined")){
+      log("Bạn đã bấm Decline! Hãy bấm lại và bấm Allow trên bảng hệ thống!");
+    }
+  }
+}
+// Auto log Pi SDK ready
+log("Pi SDK init sandbox:true xong. Sẵn sàng cấp quyền.");
+</script>
+</body>
+</html>
