@@ -1,4 +1,5 @@
 export default async function handler(req, res) {
+  // 1. Cấu hình CORS để vượt qua rào cản trình duyệt di động / Pi Browser
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*'); 
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -7,20 +8,24 @@ export default async function handler(req, res) {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
+  // 2. Phản hồi nhanh cho request OPTIONS kiểm tra từ trình duyệt
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
+  // 3. Chỉ cho phép phương thức POST
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ success: false, error: "Method Not Allowed" });
   }
 
+  // 4. Kiểm tra khóa API từ môi trường Vercel
   const PI_API_KEY = process.env.PI_API_KEY;
   if (!PI_API_KEY) {
     return res.status(500).json({ success: false, error: "Missing PI_API_KEY" });
   }
 
+  // 5. Đọc dữ liệu gửi lên từ Frontend
   const body = req.body || {};
   let targetList = [];
 
@@ -30,6 +35,7 @@ export default async function handler(req, res) {
     targetList = [body.uid.trim()];
   }
 
+  // Danh sách dự phòng 5 UIDs mặc định của dự án Lovely Animals
   const DEFAULT_LOVELY_5UIDS = [
     "42e4b976-a279-43e3-afc1-3f3e75db0e16",
     "42e3690a-ca9d-4726-bc94-43abd7cecb60",
@@ -44,6 +50,7 @@ export default async function handler(req, res) {
 
   const amount = Number(body.amount) || 1;
 
+  // 6. Hàm hỗ trợ gọi trực tiếp tới Pi Core Team API
   async function piFetch(path, method = "GET", payload) {
     const r = await fetch(`https://api.minepi.com${path}`, {
       method,
@@ -67,6 +74,7 @@ export default async function handler(req, res) {
 
   const results = [];
 
+  // 7. Vòng lặp xử lý gửi yêu cầu thanh toán lần lượt qua từng UID
   for (let i = 0; i < targetList.length; i++) {
     const uid = targetList[i];
     
@@ -84,7 +92,7 @@ export default async function handler(req, res) {
     if (piResponse.ok) {
       results.push({ uid, success: true, pi_response: piResponse.data });
     } else {
-      // TRÍCH XUẤT NGUYÊN VĂN BÁO LỖI TỪ PI CORE TEAM API
+      // Trích xuất nguyên văn báo lỗi từ Pi API (ví dụ: feature_not_available,...)
       const piErrMsg = piResponse.data?.message 
         || piResponse.data?.error 
         || JSON.stringify(piResponse.data);
@@ -97,6 +105,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // Delay nhẹ 500ms giữa các request để tránh bị nghẽn mạng / rate limit
     if (i < targetList.length - 1) {
       await new Promise(r => setTimeout(r, 500));
     }
@@ -105,6 +114,7 @@ export default async function handler(req, res) {
   const successCount = results.filter(r => r.success).length;
   const allOk = successCount === results.length;
 
+  // 8. Trả về kết quả tổng hợp cho Frontend hiển thị
   return res.status(allOk ? 200 : 207).json({
     success: allOk,
     successCount,
