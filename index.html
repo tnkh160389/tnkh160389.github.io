@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lovely Animals - Combined Grant + Pay</title>
+<title>Lovely Animals - Grant Pi System</title>
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <style>
 body{font-family:Arial;text-align:center;padding:16px;background:#fff8f0}
@@ -17,11 +17,11 @@ body{font-family:Arial;text-align:center;padding:16px;background:#fff8f0}
 </head>
 <body>
 <div class="container">
-<h2>🐾 Lovely Animals<br><small>Grant + Pay - Admin thuongsheva 0e16</small></h2>
-<div id="status">Sẵn sàng - 5 UID chuẩn Lovely</div>
+<h2>🐾 Lovely Animals<br><small>Grant Pi System - Admin thuongsheva 0e16</small></h2>
+<div id="status">Sẵn sàng - Đợi cấp quyền từ hệ thống Pi</div>
 <button class="btn red" onclick="resetCache()">🔄 1. XÓA CACHE PI BROWSER</button>
-<button class="btn orange" onclick="grantWallet()">🔑 2. CẤP QUYỀN VÍ (Cho TK CON)</button>
-<button class="btn green" onclick="capQuyenAdmin()">🔑 3. Cấp quyền ví Chính chủ thuongsheva</button>
+<button class="btn orange" onclick="grantWallet()">🔑 2. CẤP QUYỀN VÍ (Cho TK CON) - Pi System Popup</button>
+<button class="btn green" onclick="capQuyenAdmin()">🔑 3. Cấp quyền ví Chính chủ thuongsheva - Pi System</button>
 <button class="btn purple" onclick="pay5()">🚀 4. Pay 5 UIDs Lovely (Chỉ Admin)</button>
 <div id="log" class="box">5 UID CHUẨN LOVELY (KHÔNG PHAI SPA):
 - 42e4b976-a279-43e3-afc1-3f3e75db0e16 (thuongsheva - ADMIN 0e16)
@@ -32,12 +32,12 @@ body{font-family:Arial;text-align:center;padding:16px;background:#fff8f0}
 Domain Pi Portal: tnkh160389.github.io
 Backend: tnkh160389githubio.vercel.app/api/pay5uid
 </div>
-<div class="small">TK Con chỉ cần bấm nút 2 - Admin thuongsheva bấm nút 3 + 4</div>
+<div class="small">TK Con bấm nút 2 -> Đợi bảng hệ thống Pi hiện Allow wallet_address -> Bấm Allow<br>Admin thuongsheva bấm nút 3 + 4</div>
 </div>
 <script>
 Pi.init({version:"2.0", sandbox:true});
 const BACKEND_URL = 'https://tnkh160389githubio.vercel.app/api/pay5uid';
-const ADMIN_UID = "42e4b976-a279-43e3-afc1-3f3e75db0e16"; // thuongsheva 0e16
+const ADMIN_UID = "42e4b976-a279-43e3-afc1-3f3e75db0e16";
 const DEFAULT_5UIDS = [
  "42e4b976-a279-43e3-afc1-3f3e75db0e16",
  "42e3690a-ca9d-4726-bc94-43abd7cecb60",
@@ -56,46 +56,64 @@ function resetCache(){
   document.getElementById('log').innerText="🧹 Đã xóa cache...";
   setTimeout(()=>location.replace(location.href.split('?')[0]+'?cb='+Date.now()), 900);
 }
+// Callback hệ thống Pi - bắt buộc phải có để Pi Browser hiện bảng xin quyền
+function onIncompletePaymentFound(payment){
+  console.log("Incomplete payment found:", payment);
+  log("⚠️ Phát hiện payment kẹt cũ: "+payment.identifier+" - Pi System sẽ xử lý");
+  return payment;
+}
+// 2. CẤP QUYỀN VÍ CHO TK CON - GỌI BẢNG HỆ THỐNG PI BROWSER THẬT
 async function grantWallet(){
-  document.getElementById('log').innerText="Đang cấp quyền ví cho TK CON...";
+  document.getElementById('log').innerText="🔑 Đang gọi bảng hệ thống Pi Browser để xin quyền ví...\nVui lòng đợi bảng Pi hiện lên và bấm Allow wallet_address";
+  setStatus("Đang đợi bảng hệ thống Pi - Allow wallet_address?", false);
   try{
-    const auth = await Pi.authenticate(SCOPES, ()=>{});
-    document.getElementById('log').innerText=`✅ TK CON ĐÃ CẤP QUYỀN VÍ!
+    // GỌI PI SYSTEM POPUP THẬT - Pi Browser sẽ hiện bảng: Allow Lovely Animals to access wallet_address?
+    const auth = await Pi.authenticate(SCOPES, onIncompletePaymentFound);
+    accessToken = auth.accessToken;
+    document.getElementById('log').innerText=`✅ PI SYSTEM ĐÃ CẤP QUYỀN VÍ!
 User: ${auth.user.username}
 UID: ${auth.user.uid}
-Scope: wallet_address Allow
+AccessToken: ${auth.accessToken.slice(0,25)}...
+Scope wallet_address: Đã được Pi Browser hệ thống Allow!
+Đây là bảng hệ thống Pi thật, không phải code tự in!
 Xong 1 đứa! Cho đứa con tiếp theo vào!`;
-    setStatus(`TK Con ${auth.user.username} đã cấp quyền`, true);
-  }catch(e){ document.getElementById('log').innerText="❌ Lỗi: "+e.message; }
+    setStatus(`✅ TK Con ${auth.user.username} đã được Pi System cấp quyền ví`, true);
+  }catch(e){ 
+    document.getElementById('log').innerText="❌ Bị từ chối hoặc lỗi Pi System: "+e.message+"\nBạn đã bấm Deny trên bảng hệ thống Pi?";
+    setStatus("Bị từ chối cấp quyền ví", false);
+  }
 }
+// 3. CẤP QUYỀN VÍ CHÍNH CHỦ - CŨNG GỌI BẢNG HỆ THỐNG PI
 async function capQuyenAdmin(){
-  document.getElementById('log').innerText="Đang cấp quyền ví chính chủ thuongsheva...";
+  document.getElementById('log').innerText="🔑 Đang gọi bảng hệ thống Pi Browser cho chính chủ thuongsheva...\nĐợi bảng Pi hiện lên...";
+  setStatus("Đang đợi bảng hệ thống Pi - Chính chủ thuongsheva", false);
   try{
-    const auth = await Pi.authenticate(SCOPES, ()=>{});
+    const auth = await Pi.authenticate(SCOPES, onIncompletePaymentFound);
     accessToken=auth.accessToken;
     const isAdmin = auth.user.uid===ADMIN_UID;
-    document.getElementById('log').innerText=`${isAdmin?'✅ ĐÚNG':'❌ SAI'} ADMIN!
+    document.getElementById('log').innerText=`${isAdmin?'✅ ĐÚNG':'❌ SAI'} ADMIN - PI SYSTEM CẤP QUYỀN!
 User: ${auth.user.username}
 UID: ${auth.user.uid}
 Admin cần: ${ADMIN_UID} (thuongsheva 0e16)
-${isAdmin?'✅ ĐÚNG ADMIN - Sẵn sàng Pay 5 UIDs':'❌ KHÔNG PHẢI ADMIN thuongsheva'}
-AccessToken: ${accessToken.slice(0,20)}...`;
-    setStatus(isAdmin?`OK ADMIN ${auth.user.username}`:`SAI ADMIN - ${auth.user.username}`, isAdmin);
-  }catch(e){ document.getElementById('log').innerText="❌ Auth fail: "+e.message; }
+${isAdmin?'✅ ĐÚNG ADMIN thuongsheva - Pi System đã Allow wallet_address - Sẵn sàng Pay!':'❌ KHÔNG PHẢI ADMIN'}
+AccessToken từ Pi System: ${accessToken.slice(0,25)}...`;
+    setStatus(isAdmin?`✅ OK ADMIN ${auth.user.username} - Pi System đã cấp quyền`:`SAI ADMIN - ${auth.user.username}`, isAdmin);
+  }catch(e){ document.getElementById('log').innerText="❌ Auth fail Pi System: "+e.message; }
 }
 async function pay5(){
   if(!accessToken){
-    try{ const auth = await Pi.authenticate(SCOPES, ()=>{}); accessToken=auth.accessToken; }catch(e){ return alert("Bấm nút 3 Cấp quyền ví chính chủ trước!"); }
+    document.getElementById('log').innerText="⚠️ Chưa có AccessToken từ Pi System!\nBấm nút 3 để gọi bảng hệ thống Pi trước!";
+    try{ const auth = await Pi.authenticate(SCOPES, onIncompletePaymentFound); accessToken=auth.accessToken; }catch(e){ return alert("Bấm nút 3 Cấp quyền ví chính chủ trước!"); }
   }
-  document.getElementById('log').innerText="🚀 Đang pay 5 UIDs Lovely...\n"+BACKEND_URL;
+  document.getElementById('log').innerText="🚀 Đang pay 5 UIDs Lovely qua backend Vercel...\n"+BACKEND_URL+"\nAdmin: thuongsheva 0e16 - Đã được Pi System cấp quyền";
   try{
     const r = await fetch(BACKEND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({accessToken,uids:DEFAULT_5UIDS,amount:1})});
     const data = await r.json();
     let txt=`STATUS ${r.status} - successCount ${data.successCount}/${data.total}\n\n`;
     data.results?.forEach(x=>{ txt+=`${x.success?'✅':'❌'} ${x.uid.slice(0,6)}... ${x.success?'OK':(x.error||'')} \n`; });
     document.getElementById('log').innerText=txt+"\nFull:\n"+JSON.stringify(data,null,2);
-    if(data.successCount===5) setStatus("🎉 5/5 THÀNH CÔNG - LOVELY FIXED!", true);
-    else setStatus(`${data.successCount||0}/${data.total} - ${r.status===207?'207 Multi':''}`, false);
+    if(data.successCount===5) setStatus("🎉 5/5 THÀNH CÔNG - LOVELY FIXED! Pi System OK!", true);
+    else setStatus(`${data.successCount||0}/${data.total} - ${r.status===207?'207 Multi - check Vercel Logs':''}`, false);
   }catch(e){ document.getElementById('log').innerText="❌ Fetch lỗi: "+e.message; }
 }
 </script>
