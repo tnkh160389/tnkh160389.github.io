@@ -6,125 +6,87 @@
 <title>Lovely Animals - Sandbox Pay 5 UIDs</title>
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <style>
-body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #fff; color: #000; }
-.btn { width: 100%; padding: 14px; border-radius: 12px; border: 0; font-size: 16px; font-weight: bold; margin: 8px 0; cursor: pointer; }
+body { font-family: monospace; background: #0a0a0a; color: #0f0; padding: 15px; padding-top: 20px; margin: 0; }
+h2 { font-size: 16px; }
+.btn { width: 100%; padding: 14px; border-radius: 8px; border: 0; font-size: 15px; font-weight: bold; margin: 8px 0; cursor: pointer; }
 .green { background: #22c55e; color: white; }
 .purple { background: #7c3aed; color: white; }
-.box { background: #000; color: #00ff88; text-align: left; padding: 12px; border-radius: 12px; font-family: monospace; white-space: pre-wrap; min-height: 140px; margin-top: 10px; font-size: 13px; line-height: 1.4; }
+#log { background: #000; color: #00ff88; text-align: left; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; height: 350px; overflow: auto; margin-top: 10px; font-size: 12px; border: 1px solid #0f0; }
 </style>
 </head>
 <body>
 
 <h2>🐾 Lovely Animals - Sandbox Pay 5 UIDs</h2>
-<div id="status" style="color: #eab308; font-weight: bold; margin: 10px">Sẵn sàng chạy Sandbox</div>
+<div id="status" style="color: #eab308; font-weight: bold; margin: 10px">Sẵn sàng Sandbox</div>
 
-<button class="btn green" onclick="xoaCacheVaDangNhap()">🔄 1. Xác thực & Cấp quyền Pi SDK</button>
-<button class="btn purple" onclick="pay5()">🚀 2. Thanh toán Sandbox 5 UID</button>
+<button class="btn green" id="btnLogin">1. Xác thực Pi SDK (Sandbox)</button>
+<button class="btn purple" id="btnPay">2. Thanh toán Sandbox 5 UID</button>
 
-<div id="log" class="box">Chưa chạy...
-App: Lovely Animals
-Admin: thuongsheva
-Domain: tnkh160389githubio.vercel.app
-</div>
+<div id="log">Sẵn sàng...</div>
 
 <script>
-// Khởi tạo Pi SDK chuẩn Sandbox
 Pi.init({ version: "2.0", sandbox: true });
 
-// Đường dẫn Vercel chuẩn xác (đã bỏ dấu chấm thừa)
 const BACKEND_URL = 'https://tnkh160389githubio.vercel.app/api/pay5uid';
 
-const DEFAULT_LOVELY_5UIDS = [
-  "42e4b976-a279-43e3-afc1-3f3e75db0e16",
-  "42e3690a-ca9d-4726-bc94-43abd7cecb60",
-  "6d7867e6-9abb-4f76-9cb4-85e146eee486",
-  "6b6080ea-081c-4e34-8b81-91fd173b7c36",
-  "a46fa764-7725-4f23-bbfc-554b358e33d3"
+// 5 UID chính chủ của Lovely Animals
+const TARGET_UIDS = [
+  { username: "Target_1", uid: "42e4b976-a279-43e3-afc1-3f3e75db0e16" },
+  { username: "Target_2", uid: "42e3690a-ca9d-4726-bc94-43abd7cecb60" },
+  { username: "Target_3", uid: "6d7867e6-9abb-4f76-9cb4-85e146eee486" },
+  { username: "Target_4", uid: "6b6080ea-081c-4e34-8b81-91fd173b7c36" },
+  { username: "Target_5", uid: "a46fa764-7725-4f23-bbfc-554b358e33d3" }
 ];
 
-let accessToken = null;
-const SCOPES = ['username', 'payments', 'wallet_address'];
+function addLog(m) {
+  let el = document.getElementById('log');
+  el.textContent += "\n[" + new Date().toLocaleTimeString() + "] " + m;
+  el.scrollTop = el.scrollHeight;
+}
 
-async function xoaCacheVaDangNhap() {
-  const log = document.getElementById("log");
-  const status = document.getElementById("status");
-
+document.getElementById('btnLogin').onclick = async () => {
   try {
-    log.innerText = "⏳ Đang kết nối Pi SDK Sandbox...";
-
-    if (!window.Pi || typeof Pi.authenticate !== "function") {
-      throw new Error("Pi SDK chưa sẵn sàng. Hãy mở web bằng Pi Browser!");
-    }
-
-    // Gọi xác thực kèm scope ví
-    const auth = await Pi.authenticate(SCOPES, onIncompletePaymentFound);
-
-    if (!auth || !auth.accessToken || !auth.user) {
-      throw new Error("SDK không trả về đủ thông tin xác thực!");
-    }
-
-    accessToken = auth.accessToken;
-
-    log.innerText = 
-      "✅ XÁC THỰC THÀNH CÔNG!\n" +
-      "-------------------------\n" +
-      "User: " + auth.user.username + "\n" +
-      "UID: " + auth.user.uid + "\n" +
-      "Token: " + accessToken.substring(0, 12) + "...\n" +
-      "Trạng thái: Đã sẵn sàng!";
-
-    status.innerText = "OK: " + auth.user.username;
+    addLog("⏳ Đang kết nối Pi SDK Sandbox...");
+    let auth = await Pi.authenticate(['username', 'payments', 'wallet_address'], (p) => {
+      console.log("Incomplete payment:", p);
+    });
+    addLog(`✅ XÁC THỰC THÀNH CÔNG: @${auth.user.username} (${auth.user.uid})`);
+    document.getElementById('status').innerText = "OK: " + auth.user.username;
   } catch (e) {
-    accessToken = null;
-    log.innerText = "❌ XÁC THỰC THẤT BẠI:\n" + (e?.message || String(e));
-    status.innerText = "Lỗi xác thực";
+    addLog("❌ LỖI XÁC THỰC: " + e.message);
   }
-}
+};
 
-function onIncompletePaymentFound(payment) {
-  console.log("Incomplete payment found:", payment);
-}
-
-async function pay5() {
-  if (!accessToken) {
-    return alert("Vui lòng bấm nút 1 (Xác thực & Cấp quyền Pi SDK) trước!");
-  }
+document.getElementById('btnPay').onclick = async () => {
+  addLog("🚀 BẮT ĐẦU BẮN 5 UID LOVELY ANIMALS...");
   
-  document.getElementById('log').innerText = "🚀 Đang gửi yêu cầu thanh toán tới Server...\n" + BACKEND_URL;
-  
-  try {
-    const r = await fetch(BACKEND_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessToken, uids: DEFAULT_LOVELY_5UIDS, amount: 1 })
-    });
+  for (let i = 0; i < TARGET_UIDS.length; i++) {
+    let u = TARGET_UIDS[i];
+    addLog(`⏳ [${i+1}/5] Đang chuyển cho ${u.username} (${u.uid.substring(0,8)}...)`);
     
-    const text = await r.text();
-    let data;
-    try { 
-      data = JSON.parse(text); 
-    } catch { 
-      document.getElementById('log').innerText = "RAW Response:\n" + text; 
-      return; 
+    try {
+      let r = await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: u.uid, username: u.username, amount: 1 })
+      });
+      
+      let res = await r.json();
+      if (r.ok) {
+        addLog(`✅ [${i+1}/5] ${u.username} THÀNH CÔNG! PaymentID: ${res.paymentId || 'OK'}`);
+      } else {
+        addLog(`❌ [${i+1}/5] THẤT BẠI: ${JSON.stringify(res)}`);
+      }
+    } catch (err) {
+      addLog(`❌ Lỗi mạng: ${err.message}`);
     }
     
-    if (data.successCount === undefined) {
-      document.getElementById('log').innerText = "Backend trả về:\n" + JSON.stringify(data, null, 2);
-      document.getElementById('status').innerText = "Xem log backend";
-      return;
-    }
-    
-    let txt = `successCount: ${data.successCount}/${data.total}\n\n`;
-    data.results?.forEach(x => { 
-      txt += `${x.success ? '✅ OK' : '❌ FAIL'} ${x.uid.substring(0, 6)}... ${x.success ? 'Thành công' : (x.error || '')}\n`; 
-    });
-    
-    document.getElementById('log').innerText = txt;
-    document.getElementById('status').innerText = `${data.successCount}/${data.total} THÀNH CÔNG`;
-  } catch (e) { 
-    document.getElementById('log').innerText = "❌ Lỗi kết nối: " + e.message; 
+    await new Promise(r => setTimeout(r, 1200));
   }
-}
+  
+  addLog("🎉 HOÀN TẤT BATCH THANH TOÁN 5 UID!");
+  document.getElementById('status').innerText = "HOÀN TẤT BATCH";
+};
 </script>
 </body>
 </html>
