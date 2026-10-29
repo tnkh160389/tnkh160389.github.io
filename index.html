@@ -44,16 +44,26 @@ function addLog(m) {
   el.scrollTop = el.scrollHeight;
 }
 
-document.getElementById('btnLogin').onclick = async () => {
+document.getElementById('btnPay').onclick = async () => {
+  addLog("🚀 BẮT ĐẦU BẮN 5 UID LOVELY ANIMALS...");
+  
   try {
-    addLog("⏳ Đang kết nối Pi SDK Sandbox...");
-    let auth = await Pi.authenticate(['username', 'payments', 'wallet_address'], (p) => {
-      console.log("Incomplete payment:", p);
+    let r = await fetch(BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: 1 })
     });
-    addLog(`✅ XÁC THỰC THÀNH CÔNG: @${auth.user.username} (${auth.user.uid})`);
-    document.getElementById('status').innerText = "OK: " + auth.user.username;
-  } catch (e) {
-    addLog("❌ LỖI XÁC THỰC: " + e.message);
+    
+    let res = await r.json();
+    
+    // BẮT BUỘC CHECK RES.SUCCESS THAY VÌ CHỈ CHECK R.OK
+    if (r.ok && res.success) {
+      addLog(`✅ BATCH THÀNH CÔNG RỰC RỠ! Đã chuyển xong ${res.successCount}/${res.total} tài khoản.`);
+    } else {
+      addLog(`❌ BATCH THẤT BẠI: ${JSON.stringify(res)}`);
+    }
+  } catch (err) {
+    addLog(`❌ Lỗi mạng: ${err.message}`);
   }
 };
 
