@@ -1,22 +1,29 @@
 export default async function handler(req, res) {
+  // Cấu hình CORS vượt rào toàn diện
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Content-Length, Content-Type, Date, X-Api-Version, Authorization');
+  
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ success: false, error: "Method Not Allowed" });
 
   const PI_API_KEY = process.env.PI_API_KEY;
-  const ADMIN_UID = process.env.ADMIN_UID;
-  if (!PI_API_KEY) return res.status(500).json({ success: false, error: "Missing PI_API_KEY" });
-  const body = req.body || {};
-
-  const accessToken = body.accessToken;
-  if (!ADMIN_UID) return res.status(500).json({ error: "Missing ADMIN_UID env" });
-  if (!accessToken) return res.status(401).json({ error: "Thieu accessToken" });
+  const ADMIN_UID = process.env.ADMIN_UID; // Bắt buộc cài đặt trên Vercel: 42e4b976-a279-43e3-afc1-3f3e75db0e16
   
+  if (!PI_API_KEY) return res.status(500).json({ success: false, error: "Missing PI_API_KEY" });
+  if (!ADMIN_UID) return res.status(500).json({ error: "Missing ADMIN_UID env" });
+
+  const body = req.body || {};
+  const accessToken = body.accessToken;
+  if (!accessToken) return res.status(401).json({ error: "Thieu accessToken" });
+
+  // Kiểm tra xác thực chính chủ Admin (thuongsheva)
   try {
-    const meCheck = await fetch(`https://api.minepi.com/v2/me`, { headers: { Authorization: `Bearer ${accessToken}` } }).then(r => r.json());
+    const meCheck = await fetch(`https://api.minepi.com/v2/me`, { 
+      headers: { Authorization: `Bearer ${accessToken}` } 
+    }).then(r => r.json());
+    
     console.log(`[AUTH] Me UID: ${meCheck.uid} vs ADMIN: ${ADMIN_UID}`);
     if (meCheck.uid !== ADMIN_UID) {
       console.log(`[AUTH] 403 Forbidden - ${meCheck.uid} is not admin`);
@@ -27,6 +34,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "accessToken khong hop le" });
   }
 
+  // Xử lý danh sách UID mục tiêu
   let targetList = [];
   if (Array.isArray(body.uids) && body.uids.length > 0) {
     targetList = body.uids.map(u => typeof u === 'string' ? u.trim() : '').filter(Boolean);
@@ -34,7 +42,7 @@ export default async function handler(req, res) {
     targetList = [body.uid.trim()];
   }
 
-  // BỘ 5 UID CHUẨN CỦA LOVELY ANIMALS (ADMIN THUONGSHEVA ĐỨNG ĐẦU)
+  // Bộ 5 UID chuẩn của Lovely Animals (thuongsheva đứng đầu)
   const DEFAULT_LOVELY_5UIDS = [
     "42e4b976-a279-43e3-afc1-3f3e75db0e16", // thuongsheva (Admin)
     "42e3690a-ca9d-4726-bc94-43abd7cecb60",
@@ -57,6 +65,7 @@ export default async function handler(req, res) {
     return { ok: r.ok, status: r.status, data };
   }
 
+  // Cơ chế tự động hủy/hoàn thành giao dịch treo (ongoing payment)
   async function cancelOngoingIfFound(piErrorData) {
     try {
       let paymentId = null;
@@ -81,16 +90,18 @@ export default async function handler(req, res) {
   for (let i = 0; i < targetList.length; i++) {
     const uid = targetList[i];
     let attempt = 0; let finalResult = null;
+    
     while (attempt < 3) {
       attempt++;
       const piPayload = { 
         payment: { 
           amount, 
-          memo: `Lovely Animals Testnet A2U @${uid.substring(0, 6)} - ${i + 1}/${targetList.length}`, 
-          metadata: { target_uid: uid, batch_index: i, attempt, app: "lovelyanimals", env: "testnet" }, 
+          memo: `Lovely Animals Sandbox A2U @${uid.substring(0, 6)} - ${i + 1}/${targetList.length}`, 
+          metadata: { target_uid: uid, batch_index: i, attempt, app: "lovelyanimals", env: "sandbox" }, 
           uid 
         } 
       };
+      
       const piResponse = await piFetch("/v2/payments", "POST", piPayload);
       if (piResponse.ok) { 
         console.log(`[PAY OK] ${i + 1}/${targetList.length} UID ${uid} SUCCESS`);
@@ -99,6 +110,7 @@ export default async function handler(req, res) {
       } else {
         console.log(`[PAY FAIL] ${i + 1}/${targetList.length} UID ${uid} Status ${piResponse.status}`, JSON.stringify(piResponse.data).slice(0, 500));
         const errStr = JSON.stringify(piResponse.data).toLowerCase();
+        
         if (errStr.includes("ongoing_payment_found") || errStr.includes("ongoing payment")) {
           const cancelRes = await cancelOngoingIfFound(piResponse.data);
           if (cancelRes.cancelled) { 
@@ -115,20 +127,26 @@ export default async function handler(req, res) {
         }
       }
     }
+    
     if (finalResult && finalResult.retrying) {
       const lastPayload = { payment: { amount, memo: `Lovely Animals Retry ${uid}`, metadata: { target_uid: uid }, uid } };
       const lastResp = await piFetch("/v2/payments", "POST", lastPayload);
       console.log(`[RETRY] UID ${uid} ${lastResp.ok ? 'SUCCESS' : 'FAIL'} Status ${lastResp.status}`);
       finalResult = lastResp.ok ? { uid, success: true, pi_response: lastResp.data } : { uid, success: false, error: "Failed after cancel", details: lastResp.data };
     }
+    
     results.push(finalResult);
     if (i < targetList.length - 1) await new Promise(r => setTimeout(r, 800));
   }
 
   const successCount = results.filter(r => r.success).length;
-  console.log(`[SUMMARY] Total: ${results.length}, Success: ${successCount}, Fail: ${results.length - successCount}`);
-  results.forEach(r => console.log(`-> UID ${r.uid.substring(0, 8)}... : ${r.success ? '200 OK' : `FAIL ${r.status || ''} ${r.error || ''}`}`));
-
   const allOk = results.every(r => r.success);
-  return res.status(allOk ? 200 : 207).json({ success: allOk, total: results.length, successCount, results, note: "Lovely Animals Testnet A2U - Chinh chu only" });
+  
+  return res.status(allOk ? 200 : 207).json({ 
+    success: allOk, 
+    total: results.length, 
+    successCount, 
+    results, 
+    note: "Lovely Animals Sandbox A2U - Chinh chu only" 
+  });
 }
