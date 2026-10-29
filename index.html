@@ -3,24 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lovely Animals - Pay 5 UIDs Final</title>
+<title>Lovely Animals - Sandbox Pay 5 UIDs</title>
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <style>
 body{font-family:Arial;text-align:center;padding:20px;background:#fff;color:#000}
 .btn{width:100%;padding:14px;border-radius:12px;border:0;font-size:16px;font-weight:bold;margin:8px 0;cursor:pointer}
 .green{background:#22c55e;color:white}
-.orange{background:#f59e0b;color:white}
 .purple{background:#7c3aed;color:white}
 .box{background:#000;color:#00ff88;text-align:left;padding:12px;border-radius:12px;font-family:monospace;white-space:pre-wrap;min-height:120px;margin-top:10px;font-size:13px}
 </style>
 </head>
 <body>
-<h2>🐾 Lovely Animals - Pay 5 UIDs</h2>
-<div id="status" style="color:#eab308;font-weight:bold;margin:10px">Sẵn sàng cấp quyền ví & thanh toán</div>
+<h2>🐾 Lovely Animals - Sandbox Pay 5 UIDs</h2>
+<div id="status" style="color:#eab308;font-weight:bold;margin:10px">Sẵn sàng chạy Sandbox</div>
 
-<button class="btn green" onclick="capQuyen()">🔑 1. Xác thực & Cấp quyền</button>
-<button class="btn orange" onclick="yeuCauQuyenVi()">👛 2. Bật Popup Cấp Quyền Ví</button>
-<button class="btn purple" onclick="pay5()">🚀 3. Pay 5 UIDs</button>
+<button class="btn green" onclick="xoaCacheVaDangNhap()">🔄 1. Xóa Cache & Đăng nhập mới</button>
+<button class="btn purple" onclick="pay5()">🚀 2. Thanh toán Sandbox 5 UID</button>
 
 <div id="log" class="box">Chưa chạy...
 App: Lovely Animals
@@ -28,9 +26,10 @@ Admin: thuongsheva
 </div>
 
 <script>
-Pi.init({version:"2.0", sandbox:false});
+// QUAN TRỌNG: Bật sandbox: true để khớp hoàn toàn với môi trường testnet của tài khoản
+Pi.init({version:"2.0", sandbox:true});
 
-// Đảm bảo đúng domain Vercel của bro
+// Đường dẫn Vercel chính thức của bro
 const BACKEND_URL = 'https://tnkh160389githubio.vercel.app/api/pay5uid'; 
 
 const DEFAULT_LOVELY_5UIDS = [
@@ -42,44 +41,24 @@ const DEFAULT_LOVELY_5UIDS = [
 ];
 
 let accessToken = null;
+// Yêu cầu đầy đủ scope để Pi Browser bật popup cấp quyền ví
 const SCOPES = ['username', 'payments', 'wallet_address'];
 
-// 1. Xác thực tài khoản cơ bản
-async function capQuyen(){
+async function xoaCacheVaDangNhap(){
   try{
+    // Xóa sạch bộ nhớ tạm để Pi Browser ép buộc hiển thị lại bảng xin quyền (Allow wallet)
     localStorage.clear();
     sessionStorage.clear();
+    document.getElementById('log').innerText = "Đã xóa cache. Đang gọi hộp thoại xác thực...";
+    
     const auth = await Pi.authenticate(SCOPES, onIncompletePaymentFound);
     accessToken = auth.accessToken;
-    document.getElementById('log').innerText = `Đã xác thực!\nUser: ${auth.user.username}\nUID: ${auth.user.uid}`;
+    
+    document.getElementById('log').innerText = `✅ Đã cấp quyền phiên mới!\nUser: ${auth.user.username}\nUID: ${auth.user.uid}`;
     document.getElementById('status').innerText = `OK: ${auth.user.username}`;
-  }catch(e){ alert("Lỗi xác thực: " + e.message); }
-}
-
-// 2. KÍCH HOẠT HỘP THOẠI HỎI VÍ (Mở một transaction giả lập hoặc gọi createPayment để ép Pi Browser hiện popup Allow ví)
-async function yeuCauQuyenVi() {
-  document.getElementById('log').innerText = "Đang gửi yêu cầu khởi tạo giao diện ví tới Pi Browser...";
-  try {
-    Pi.createPayment({
-      amount: 0.01,
-      memo: "Lovely Animals Wallet Authorization",
-      metadata: { purpose: "wallet_auth" },
-    }, {
-      onReadyForServerApproval: (paymentId) => {
-        document.getElementById('log').innerText = `✅ Pi Browser đã cấp quyền ví!\nPayment ID: ${paymentId}\nBây giờ có thể bấm nút Pay 5 UIDs.`;
-      },
-      onReadyForServerCompletion: (paymentId, txid) => {
-        console.log("Completed:", paymentId, txid);
-      },
-      onCancel: (paymentId) => {
-        document.getElementById('log').innerText = "⚠️ Đã hủy yêu cầu cấp quyền ví.";
-      },
-      onError: (error, payment) => {
-        document.getElementById('log').innerText = "Lỗi popup ví: " + error;
-      }
-    });
-  } catch (err) {
-    alert("Lỗi gọi ví: " + err.message);
+  }catch(e){ 
+    alert("Lỗi xác thực: " + e.message);
+    document.getElementById('log').innerText = "Lỗi xác thực: " + e.message;
   }
 }
 
@@ -87,13 +66,12 @@ function onIncompletePaymentFound(payment) {
   console.log("Incomplete payment found:", payment);
 }
 
-// 3. Thực thi gọi Backend pay 5 UIDs
 async function pay5(){
   if(!accessToken){
-    return alert("Vui lòng bấm nút 1 (Xác thực) trước!");
+    return alert("Vui lòng bấm nút 1 (Xóa Cache & Đăng nhập mới) trước!");
   }
   
-  document.getElementById('log').innerText = "Đang gửi yêu cầu Pay 5 UIDs tới Server...\n" + BACKEND_URL;
+  document.getElementById('log').innerText = "🚀 Đang gửi yêu cầu thanh toán tới Server...\n" + BACKEND_URL;
   try{
     const r = await fetch(BACKEND_URL, {
       method: 'POST',
@@ -117,7 +95,9 @@ async function pay5(){
     });
     document.getElementById('log').innerText = txt;
     document.getElementById('status').innerText = `${data.successCount}/${data.total} THÀNH CÔNG`;
-  }catch(e){ document.getElementById('log').innerText = "Lỗi kết nối: " + e.message; }
+  }catch(e){ 
+    document.getElementById('log').innerText = "❌ Lỗi kết nối: " + e.message; 
+  }
 }
 </script>
 </body>
