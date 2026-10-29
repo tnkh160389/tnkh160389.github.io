@@ -1,92 +1,40 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lovely Animals - Sandbox Pay 5 UIDs</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lovely - Pay 5 vi de duoc duyet Mainnet</title>
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-<style>
-body { font-family: monospace; background: #0a0a0a; color: #0f0; padding: 15px; padding-top: 20px; margin: 0; }
-h2 { font-size: 16px; }
-.btn { width: 100%; padding: 14px; border-radius: 8px; border: 0; font-size: 15px; font-weight: bold; margin: 8px 0; cursor: pointer; }
-.green { background: #22c55e; color: white; }
-.purple { background: #7c3aed; color: white; }
-#log { background: #000; color: #00ff88; text-align: left; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; height: 380px; overflow: auto; margin-top: 10px; font-size: 12px; border: 1px solid #0f0; }
-</style>
+<style>body{font-family:monospace;background:#0a0a0a;color:#0f0;padding:15px} .btn{width:100%;padding:14px;border-radius:8px;border:0;font-weight:bold;margin:8px 0;cursor:pointer} .green{background:#22c55e;color:#fff} .purple{background:#7c3aed;color:#fff} #log{background:#000;color:#0f8;padding:12px;border-radius:8px;white-space:pre-wrap;height:400px;overflow:auto;border:1px solid #0f0;font-size:12px}</style>
 </head>
 <body>
-<h2>🐾 Lovely Animals - Sandbox Pay 5 UIDs</h2>
-<div id="status" style="color: #eab308; font-weight: bold; margin: 10px">Sẵn sàng Sandbox - 4/4 đã cấp quyền ví</div>
-<button class="btn green" id="btnLogin">1. Xác thực Pi SDK (Sandbox)</button>
-<button class="btn purple" id="btnPay">2. Thanh toán Sandbox 5 UID</button>
-<div id="log">Sẵn sàng...
-- 4/4 UID con đã cấp wallet_address xong
-- Dùng admin thuongsheva 42e4b976...0e16 để pay
+<h3>🐾 Lovely - Vi app 100% Testnet GCW05...KVCVY</h3>
+<div id="status" style="color:#eab308">Can 5 giao dich de duoc duyet Mainnet - nhu hinh Develop</div>
+<button class="btn green" id="btnLogin">1. Xac thuc Pi SDK (Sandbox)</button>
+<button class="btn purple" id="btnPay">2. Pay 5 UID de du dieu kien Mainnet</button>
+<div id="log">San sang...
+Vi app: GCW05...KVCVY 100% Testnet (chua duoc PCT duyet Mainnet)
+5 UID da cap quyen vi xong: phithuong07, thuongsheva01, dttngan123, nguyenanhuann113113, thuongsheva
+Bam nut 1 roi nut 2
 </div>
 <script>
-Pi.init({ version: "2.0", sandbox: true });
-const BACKEND_URL = 'https://tnkh160389githubio.vercel.app/api/pay5uid';
-const TARGET_UIDS = [
-  { username: "thuongsheva_ADMIN_0e16", uid: "42e4b976-a279-43e3-afc1-3f3e75db0e16" },
-  { username: "nguyenanhuann113113", uid: "42e3690a-ca9d-4726-bc94-43abd7cecb60" },
-  { username: "phithuong07", uid: "6d7867e6-9abb-4f76-9cb4-85e146eee486" },
-  { username: "thuongsheva01", uid: "6b6080ea-081c-4e34-8b81-91fd173b7c36" },
-  { username: "dttngan123", uid: "a46fa764-7725-4f23-bbfc-554b358e33d3" }
+Pi.init({version:"2.0",sandbox:true});
+const BACKEND='https://tnkh160389githubio.vercel.app/api/pay5uid';
+const UIDS=[
+{username:"thuongsheva_ADMIN",uid:"42e4b976-a279-43e3-afc1-3f3e75db0e16"},
+{username:"nguyenanhuann113113",uid:"42e3690a-ca9d-4726-bc94-43abd7cecb60"},
+{username:"phithuong07",uid:"6d7867e6-9abb-4f76-9cb4-85e146eee486"},
+{username:"thuongsheva01",uid:"6b6080ea-081c-4e34-8b81-91fd173b7c36"},
+{username:"dttngan123",uid:"a46fa764-7725-4f23-bbfc-554b358e33d3"}
 ];
-let accessTokenGlobal = null;
-function addLog(m) {
-  let el = document.getElementById('log');
-  el.textContent += "\n[" + new Date().toLocaleTimeString() + "] " + m;
-  el.scrollTop = el.scrollHeight;
-  console.log(m);
-}
-function onIncompletePaymentFound(p){ addLog("Incomplete payment found: " + JSON.stringify(p)); }
-document.getElementById('btnLogin').onclick = async () => {
-  addLog("🔐 Đang xác thực Pi SDK sandbox:true với wallet_address...");
-  try{
-    const auth = await Pi.authenticate(['username','payments','wallet_address'], onIncompletePaymentFound);
-    accessTokenGlobal = auth.accessToken;
-    addLog("✅ AUTH OK! UID: " + auth.user.uid + " Username: " + auth.user.username);
-    document.getElementById('status').innerText = "Đã xác thực: " + auth.user.username + " - Sẵn sàng pay";
-  }catch(e){
-    addLog("❌ Auth thất bại: " + (e.message || JSON.stringify(e)));
-  }
-};
-document.getElementById('btnPay').onclick = async () => {
-  addLog("🚀 BẮT ĐẦU BẮN 5 UID LOVELY ANIMALS...");
-  if(!accessTokenGlobal){
-    addLog("⚠️ Chưa xác thực! Vẫn thử pay (backend có fallback ADMIN_UID)...");
-  }
-  let totalSuccess = 0;
-  for (let i = 0; i < TARGET_UIDS.length; i++) {
-    let u = TARGET_UIDS[i];
-    addLog(`⏳ [${i+1}/5] Đang chuyển cho ${u.username} (${u.uid.slice(0,8)}...)`);
-    try {
-      let r = await fetch(BACKEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uids: [u.uid], amount: 1, accessToken: accessTokenGlobal })
-      });
-      let res = await r.json();
-      console.log("Backend response", res);
-      let item = res.results && res.results[0] ? res.results[0] : res;
-      if(res.success || (item && item.success)){
-        totalSuccess++;
-        addLog(`✅ [${i+1}/5] ${u.username} THÀNH CÔNG THẬT! PaymentID: ${item.paymentId || res.results[0].paymentId || 'OK'}`);
-      } else {
-        addLog(`❌ [${i+1}/5] ${u.username} THẤT BẠI THẬT: ${JSON.stringify(item.error || res).slice(0,300)}`);
-      }
-    } catch (err) {
-      addLog(`❌ Lỗi mạng [${i+1}/5]: ${err.message}`);
-    }
-    await new Promise(r => setTimeout(r, 1300));
-  }
-  addLog(`🎉 HOÀN TẤT! Thành công thật: ${totalSuccess}/5`);
-  document.getElementById('status').innerText = `HOÀN TẤT: ${totalSuccess}/5 THÀNH CÔNG THẬT`;
-  if(totalSuccess===5){
-    addLog("✅ KHÔNG CÒN MỪNG HỤT NỮA! Kiểm tra ví Pi Testnet sẽ thấy -5 Test-Pi ngày hôm nay!");
-  }
-};
+let token=null;
+function log(m){const el=document.getElementById('log');el.textContent+="\n["+new Date().toLocaleTimeString()+"] "+m;el.scrollTop=el.scrollHeight;}
+function onIncomplete(p){log("Incomplete: "+JSON.stringify(p));}
+document.getElementById('btnLogin').onclick=async()=>{
+log("Xac thuc...");try{const auth=await Pi.authenticate(['username','payments','wallet_address'],onIncomplete);token=auth.accessToken;log("✅ AUTH OK UID:"+auth.user.uid+" User:"+auth.user.username);document.getElementById('status').innerText="Da xac thuc: "+auth.user.username;}catch(e){log("❌ Auth fail: "+(e.message||JSON.stringify(e)));}};
+document.getElementById('btnPay').onclick=async()=>{
+log("🚀 Bat dau pay 5 UID tu vi app GCW05...KVCVY Testnet...");let ok=0;
+for(let i=0;i<UIDS.length;i++){const u=UIDS[i];log(`⏳ [${i+1}/5] Dang chuyen cho ${u.username} ${u.uid.slice(0,8)}`);try{const r=await fetch(BACKEND,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uids:[u.uid],amount:1,accessToken:token})});const res=await r.json();const item=res.results?res.results[0]:res;if(item.success||res.success){ok++;log(`✅ [${i+1}/5] ${u.username} THANH CONG THAT! PID:${item.paymentId||''}`);}else{log(`❌ [${i+1}/5] THAT BAI THAT:${JSON.stringify(item.error||res).slice(0,300)}`);}}catch(e){log(`❌ Loi mang ${i+1}: ${e.message}`);}await new Promise(r=>setTimeout(r,1200));}
+log(`🎉 HOAN TAT THAT: ${ok}/5`);document.getElementById('status').innerText=`HOAN TAT THAT: ${ok}/5`;if(ok===5){log("✅ DU 5 GIAO DICH! Quay lai develop.pi hinh cua bro, dong do se mat, nut Submit sang tim! Bam Submit de PCT duyet vi Mainnet cho lovelyanimals.pi 10 Pi thang!");}};
 </script>
 </body>
 </html>
