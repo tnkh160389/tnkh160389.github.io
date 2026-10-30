@@ -1,79 +1,275 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Lovely Animals - 5 UIDs Final FIXED - Copy Spa Khai Hoan</title>
+<title>LovelyAnimals.pi - A2U TESTNET</title>
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <style>
-body{font-family:Arial;text-align:center;padding:20px;background:#fff;color:#000}
-.btn{width:100%;padding:14px;border-radius:12px;border:0;font-size:16px;font-weight:bold;margin:8px 0;cursor:pointer}
-.green{background:#22c55e;color:white}
-.purple{background:#7c3aed;color:white}
-.box{background:#000;color:#00ff88;text-align:left;padding:12px;border-radius:12px;font-family:monospace;white-space:pre-wrap;min-height:120px;margin-top:10px;font-size:13px}
+body {
+  font-family: Arial, sans-serif;
+  background: #fff;
+  color: #111;
+  padding: 18px;
+  text-align: center;
+}
+button {
+  width: 100%;
+  padding: 15px;
+  margin: 9px 0;
+  border: 0;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: bold;
+}
+#login { background: #16a34a; color: white; }
+#pay { background: #7c3aed; color: white; }
+button:disabled { opacity: .5; }
+#status {
+  padding: 12px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  margin: 12px 0;
+  font-weight: bold;
+}
+#log {
+  background: #090909;
+  color: #00ff88;
+  text-align: left;
+  padding: 13px;
+  border-radius: 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-height: 180px;
+  font: 12px monospace;
+}
 </style>
 </head>
 <body>
-<h2>Lovely Animals - Pay 5 UIDs - Copy Spa Khai Hoan SUCCESS</h2>
-<div id="status" style="color:#eab308;font-weight:bold;margin:10px">FIXED from Spa Khai Hoan - tnkh160389.github.io - Vi 100% Testnet GCW05...KVCVY</div>
-<button class="btn green" onclick="capQuyen()">🔑 1. Cap quyen vi (wallet_address)</button>
-<button class="btn purple" onclick="pay5()">🚀 2. Pay 5 UIDs Lovely</button>
-<div id="log" class="box">Chua chay...
-Domain: tnkh160389.github.io (copy Spa npt170289.github.io)
-Backend: tnkh160389githubio.vercel.app (copy spakhaihoan.vercel.app)
-Vi app: GCW05...KVCVY 100% Testnet - da tung pay qua console 5 vi
-5 UID Lovely:
-- 42e4b976... thuongsheva ADMIN 0e16
-- 42e3690a... nguyenanhuann113113
-- 6d7867e6... phithuong07
-- 6b6080ea... thuongsheva01
-- a46fa764... dttngan123
+
+<h2>LovelyAnimals.pi</h2>
+<h3>A2U PAYOUT - TESTNET ONLY</h3>
+
+<div id="status">Chưa xác thực</div>
+
+<button id="login" onclick="capQuyen()">
+  1. XÁC THỰC ADMIN
+</button>
+
+<button id="pay" onclick="pay5()">
+  2. PAY 5 UID - TESTNET
+</button>
+
+<div id="log">Sẵn sàng.
+Network: TESTNET ONLY
+Amount: 1 Pi / UID
+Backend: Vercel
 </div>
+
 <script>
-// COPY Y CHANG SPA KHAI HOAN - sandbox:false - da pay thanh cong
-Pi.init({version:"2.0", sandbox:false});
-const BACKEND_URL = 'https://tnkh160389githubio.vercel.app/api/pay5uid';
-const DEFAULT_5UIDS = [
- "42e4b976-a279-43e3-afc1-3f3e75db0e16",
- "42e3690a-ca9d-4726-bc94-43abd7cecb60",
- "6d7867e6-9abb-4f76-9cb4-85e146eee486",
- "6b6080ea-081c-4e34-8b81-91fd173b7c36",
- "a46fa764-7725-4f23-bbfc-554b358e33d3"
+"use strict";
+
+Pi.init({
+  version: "2.0",
+  sandbox: true
+});
+
+const BACKEND_URL =
+  "https://tnkh160389githubio.vercel.app/api/pay5uid";
+
+const SCOPES = [
+  "username",
+  "payments",
+  "wallet_address"
 ];
-let accessToken = null;
-const SCOPES = ['username','payments','wallet_address'];
-async function capQuyen(){
-  try{
-    const auth = await Pi.authenticate(SCOPES, ()=>{});
-    accessToken = auth.accessToken;
-    document.getElementById('log').innerText = `Da cap quyen!\nUID: ${auth.user.uid}\nUsername: ${auth.user.username}\nAccessToken: ${auth.accessToken.slice(0,20)}...`;
-    document.getElementById('status').innerText = `OK ${auth.user.uid.substring(0,8)}... - ${auth.user.username}`;
-  }catch(e){ alert(e.message); document.getElementById('log').innerText = "Cap quyen fail: "+e.message; }
-}
-async function pay5(){
-  if(!accessToken){
-    try{ const auth = await Pi.authenticate(SCOPES, ()=>{}); accessToken = auth.accessToken; }catch(e){ return alert("Chua login Pi - Bam nut 1 truoc"); }
+
+const TARGETS = [
+  {
+    username: "thuongsheva",
+    uid: "42e4b976-a279-43e3-afc1-3f3e75db0e16"
+  },
+  {
+    username: "nguyenanhuann113113",
+    uid: "42e3690a-ca9d-4726-bc94-43abd7cecb60"
+  },
+  {
+    username: "phithuong07",
+    uid: "6d7867e6-9abb-4f76-9cb4-85e146eee486"
+  },
+  {
+    username: "thuongsheva01",
+    uid: "6b6080ea-081c-4e34-8b81-91fd173b7c36"
+  },
+  {
+    username: "dttngan123",
+    uid: "a46fa764-7725-4f23-bbfc-554b358e33d3"
   }
-  document.getElementById('log').innerText = "Dang pay 5 UID Lovely...\nBackend: "+BACKEND_URL+"\nVi app: GCW05...KVCVY 100% Testnet";
-  try{
-    const r = await fetch(BACKEND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({accessToken,uids:DEFAULT_5UIDS,amount:1})});
-    const text = await r.text();
+];
+
+let authData = null;
+let busy = false;
+
+const $ = id => document.getElementById(id);
+
+function log(message) {
+  const time = new Date().toLocaleTimeString();
+  $("log").textContent +=
+    "\n[" + time + "] " + message;
+  $("log").scrollTop = $("log").scrollHeight;
+}
+
+function setStatus(message) {
+  $("status").textContent = message;
+}
+
+async function authenticate() {
+  const auth = await Pi.authenticate(
+    SCOPES,
+    function(payment) {
+      log(
+        "INCOMPLETE PAYMENT FOUND: " +
+        (payment.identifier || "unknown") +
+        ". Cần kiểm tra trước khi chạy tiếp."
+      );
+    }
+  );
+
+  if (!auth || !auth.accessToken || !auth.user) {
+    throw new Error("Pi authentication không trả đủ dữ liệu");
+  }
+
+  authData = auth;
+
+  setStatus(
+    "ADMIN: " +
+    auth.user.username +
+    " | UID: " +
+    auth.user.uid
+  );
+
+  return auth;
+}
+
+async function capQuyen() {
+  if (busy) return;
+
+  try {
+    log("Đang xác thực Pi...");
+    const auth = await authenticate();
+
+    log("AUTH SUCCESS");
+    log("Username: " + auth.user.username);
+    log("UID: " + auth.user.uid);
+    log("AccessToken: đã nhận (không hiển thị token)");
+
+  } catch (error) {
+    authData = null;
+    log("AUTH ERROR: " + error.message);
+    setStatus("Xác thực thất bại");
+  }
+}
+
+async function pay5() {
+  if (busy) return;
+
+  busy = true;
+  $("pay").disabled = true;
+  $("login").disabled = true;
+
+  try {
+    if (!authData) {
+      log("Chưa có accessToken. Đang xác thực...");
+      await authenticate();
+    }
+
+    log("--------------------------------");
+    log("BẮT ĐẦU PAY A2U TESTNET");
+    log("Backend: " + BACKEND_URL);
+    log("Số UID: " + TARGETS.length);
+    log("Amount: 1 Pi / UID");
+    log("--------------------------------");
+
+    const response = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        accessToken: authData.accessToken
+      })
+    });
+
+    const raw = await response.text();
     let data;
-    try{ data = JSON.parse(text); } catch { document.getElementById('log').innerText = "RAW Response:\n"+text; return; }
-    if(data.successCount === undefined){
-      document.getElementById('log').innerText = "Backend tra ve:\n"+JSON.stringify(data,null,2);
-      document.getElementById('status').innerText = "Check backend log";
-      return;
+
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new Error(
+        "Backend trả dữ liệu không phải JSON: " +
+        raw.substring(0, 1000)
+      );
     }
-    let txt = `successCount: ${data.successCount}/${data.total}\n${data.success? '✅ THANH CONG THAT!':'❌ THAT BAI'} \n\n`;
-    data.results?.forEach(x=>{ txt+= `${x.success?'✅ OK':'❌ FAIL'} ${x.uid.substring(0,8)}... ${x.success?'OK':(x.error||JSON.stringify(x.details||'').slice(0,100))} \n`; });
-    document.getElementById('log').innerText = txt;
-    document.getElementById('status').innerText = `${data.successCount}/${data.total} THANH CONG THAT - Vi GCW05...KVCVY`;
-    if(data.successCount===5){
-      document.getElementById('log').innerText += "\n🎉 DU 5 GIAO DICH! Quay lai develop.pi, dong do 'The paired Testnet app needs...' se mat, nut Submit sang tim! Bam Submit de PCT duyet vi Mainnet cho lovelyanimals.pi 10 Pi thang!";
+
+    log("HTTP STATUS: " + response.status);
+
+    if (data.results) {
+      for (const item of data.results) {
+        log("--------------------------------");
+        log(
+          (item.success ? "SUCCESS " : "FAILED ") +
+          (item.username || item.uid || "unknown")
+        );
+
+        if (item.paymentId) {
+          log("Payment ID: " + item.paymentId);
+        }
+
+        if (item.txid) {
+          log("TXID: " + item.txid);
+        }
+
+        if (item.error) {
+          log("ERROR: " + item.error);
+        }
+
+        if (item.skipped) {
+          log("Đã thanh toán trước đó - không gửi lại");
+        }
+      }
     }
-  }catch(e){ document.getElementById('log').innerText = "Loi: "+e.message; }
+
+    log("--------------------------------");
+    log("KẾT QUẢ: " + JSON.stringify(data, null, 2));
+
+    if (data.success) {
+      setStatus(
+        "HOÀN TẤT: " +
+        data.successCount +
+        "/" +
+        data.total
+      );
+    } else {
+      setStatus(
+        "CẦN KIỂM TRA: " +
+        (data.successCount || 0) +
+        "/" +
+        (data.total || 5)
+      );
+    }
+
+  } catch (error) {
+    log("BATCH ERROR: " + error.message);
+    setStatus("Lỗi - kiểm tra backend");
+
+  } finally {
+    busy = false;
+    $("pay").disabled = false;
+    $("login").disabled = false;
+  }
 }
 </script>
+
 </body>
 </html>
