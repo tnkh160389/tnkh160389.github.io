@@ -190,3 +190,201 @@ img, video { display: block; max-width: 100%; }
   .sparkle { animation: none; opacity: .7; }
   .item { transition: none; opacity: 1; transform: none; }
 }
+
+/* ---------- Chatbot Lovely (router tới Pi AI) ----------
+   Vibe lung linh: nền trắng ấm, viền gradient cầu vồng, bo tròn. */
+.lv-chat-fab {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 60;
+  width: 58px;
+  height: 58px;
+  border: none;
+  border-radius: 50%;
+  font-size: 26px;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, #ff5e8a, #a855f7, #22d3ee);
+  box-shadow: 0 8px 24px rgba(255, 94, 138, .45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.lv-chat-fab:hover { transform: scale(1.07); box-shadow: 0 10px 28px rgba(168, 85, 247, .5); }
+.lv-chat-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(59, 47, 47, .45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.lv-chat-modal {
+  width: 100%;
+  max-width: 420px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: #fffaf3;
+  border-radius: 22px 22px 0 0;
+  overflow: hidden;
+  border: 3px solid transparent;
+  background:
+    linear-gradient(#fffaf3, #fffaf3) padding-box,
+    linear-gradient(135deg, #ff5e8a, #a855f7, #22d3ee, #ffd166) border-box;
+  box-shadow: 0 18px 50px rgba(255, 94, 138, .35);
+}
+@media (min-width: 700px) {
+  .lv-chat-backdrop { align-items: center; }
+  .lv-chat-modal { border-radius: 22px; max-height: 82vh; }
+}
+.lv-chat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px;
+  background: linear-gradient(90deg, rgba(255, 94, 138, .14), rgba(168, 85, 247, .14), rgba(34, 211, 238, .14));
+  border-bottom: 1px solid rgba(255, 94, 138, .25);
+}
+.lv-chat-avatar { font-size: 22px; }
+.lv-chat-title { flex: 1; font-weight: 800; font-size: 16px; color: #3b2f2f; }
+.lv-chat-close {
+  border: none;
+  background: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #7c3aed;
+  padding: 4px 8px;
+}
+.lv-chat-tabs { display: flex; border-bottom: 1px solid rgba(255, 94, 138, .25); }
+.lv-chat-tab {
+  flex: 1;
+  padding: 11px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: #7c3aed;
+  cursor: pointer;
+}
+.lv-chat-tab.active {
+  color: #ff5e8a;
+  box-shadow: inset 0 -3px 0 #ff5e8a;
+  background: rgba(255, 94, 138, .08);
+}
+.lv-chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 180px;
+}
+.lv-msg {
+  max-width: 88%;
+  padding: 10px 13px;
+  border-radius: 16px;
+  font-size: 15px;
+  line-height: 1.55;
+  white-space: pre-line;
+  word-break: break-word;
+}
+.lv-msg.bot {
+  align-self: flex-start;
+  background: #fff;
+  color: #3b2f2f;
+  border: 1px solid rgba(255, 94, 138, .3);
+  border-bottom-left-radius: 5px;
+  box-shadow: 0 2px 10px rgba(255, 94, 138, .12);
+}
+.lv-msg.user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #ff5e8a, #a855f7);
+  color: #fff;
+  border-bottom-right-radius: 5px;
+}
+.lv-msg-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.lv-msg-link {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #7c3aed;
+  text-decoration: none;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid #a855f7;
+}
+.lv-msg-ai-btn {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff5e8a, #a855f7, #22d3ee);
+  box-shadow: 0 4px 14px rgba(255, 94, 138, .4);
+}
+.lv-chat-ai { flex: 1; overflow-y: auto; padding: 16px; min-height: 180px; }
+.lv-chat-ai p { margin: 0 0 12px; font-size: 15px; line-height: 1.55; color: #3b2f2f; }
+.lv-chat-ai-en { color: #7c3aed !important; }
+.lv-ai-link { color: #7c3aed; word-break: break-all; font-weight: 700; }
+.lv-chat-ai-back {
+  border: 2px solid #ff5e8a;
+  background: #fff;
+  color: #ff5e8a;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 9px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.lv-ai-frame { width: 100%; height: 420px; border: none; border-radius: 14px; background: #fff; }
+.lv-chat-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px 0; }
+.lv-chat-chips button {
+  border: 2px solid #a855f7;
+  background: #fff;
+  color: #7c3aed;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.lv-chat-input-row { display: flex; gap: 8px; padding: 12px 14px 14px; }
+.lv-chat-input-row input {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 15px;
+  padding: 11px 13px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 94, 138, .4);
+  background: #fff;
+  color: #3b2f2f;
+  outline: none;
+}
+.lv-chat-input-row input:focus { border-color: #a855f7; }
+.lv-chat-send {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff5e8a, #a855f7);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lv-chat-fab { transition: none; }
+}
