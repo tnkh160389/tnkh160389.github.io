@@ -1,275 +1,90 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LovelyAnimals.pi - A2U TESTNET</title>
-<script src="https://sdk.minepi.com/pi-sdk.js"></script>
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: #fff;
-  color: #111;
-  padding: 18px;
-  text-align: center;
-}
-button {
-  width: 100%;
-  padding: 15px;
-  margin: 9px 0;
-  border: 0;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: bold;
-}
-#login { background: #16a34a; color: white; }
-#pay { background: #7c3aed; color: white; }
-button:disabled { opacity: .5; }
-#status {
-  padding: 12px;
-  background: #f1f5f9;
-  border-radius: 8px;
-  margin: 12px 0;
-  font-weight: bold;
-}
-#log {
-  background: #090909;
-  color: #00ff88;
-  text-align: left;
-  padding: 13px;
-  border-radius: 10px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  min-height: 180px;
-  font: 12px monospace;
-}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Lovely Animals</title>
+<meta name="description" content="Thiên nhiên, động vật &amp; chữa lành">
+<meta property="og:title" content="Lovely Animals">
+<meta property="og:description" content="Thiên nhiên, động vật &amp; chữa lành">
+<meta property="og:image" content="images/hero-garden.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
 </head>
 <body>
+<header class="top">
+  <span class="logo">Lovely Animals</span>
+</header>
 
-<h2>LovelyAnimals.pi</h2>
-<h3>A2U PAYOUT - TESTNET ONLY</h3>
+<section class="hero">
+  <img class="hero-img" src="images/hero-garden.jpg" alt="Vườn hoa">
+  <div class="sparkles" id="sparkles" aria-hidden="true"></div>
+  <div class="hero-scrim" aria-hidden="true"></div>
+  <div class="hero-text">
+    <h1>Lovely Animals</h1>
+    <p>Thiên nhiên, động vật &amp; chữa lành</p>
+  </div>
+</section>
 
-<div id="status">Chưa xác thực</div>
+<main>
+  <section class="gallery" id="khoanh-khac">
+    <h2 class="sec-title">Khoảnh khắc</h2>
+    <div class="masonry">
+      <figure class="item g1">
+        <img src="images/lovely-cat.jpg" alt="Mèo cam" loading="lazy">
+        <figcaption>Mèo cam</figcaption>
+      </figure>
+      <figure class="item g2">
+        <video src="videos/clip-duckling.mp4" poster="images/duckling.jpg" autoplay muted loop playsinline preload="metadata"></video>
+        <figcaption>Vịt con</figcaption>
+      </figure>
+      <figure class="item g3">
+        <img src="images/rabbit.jpg" alt="Thỏ trắng" loading="lazy">
+        <figcaption>Thỏ trắng</figcaption>
+      </figure>
+      <figure class="item g4">
+        <img src="images/fawn.jpg" alt="Nai con" loading="lazy">
+        <figcaption>Nai con</figcaption>
+      </figure>
+      <figure class="item g5">
+        <video src="videos/clip-panda.mp4" poster="images/lovely-panda.jpg" autoplay muted loop playsinline preload="metadata"></video>
+        <figcaption>Gấu trúc</figcaption>
+      </figure>
+      <figure class="item g6">
+        <img src="images/fox.jpg" alt="Cáo đỏ" loading="lazy">
+        <figcaption>Cáo đỏ</figcaption>
+      </figure>
+      <figure class="item g1">
+        <img src="images/kitten.jpg" alt="Mèo trắng" loading="lazy">
+        <figcaption>Mèo trắng</figcaption>
+      </figure>
+      <figure class="item g2">
+        <img src="images/hummingbird.jpg" alt="Chim ruồi" loading="lazy">
+        <figcaption>Chim ruồi</figcaption>
+      </figure>
+      <figure class="item g3">
+        <video src="videos/clip-corgi.mp4" poster="images/lovely-corgi.jpg" autoplay muted loop playsinline preload="metadata"></video>
+        <figcaption>Corgi</figcaption>
+      </figure>
+      <figure class="item g4">
+        <img src="images/hedgehog.jpg" alt="Nhím" loading="lazy">
+        <figcaption>Nhím</figcaption>
+      </figure>
+      <figure class="item g5">
+        <img src="images/puppy.jpg" alt="Cún con" loading="lazy">
+        <figcaption>Cún con</figcaption>
+      </figure>
+    </div>
+  </section>
+</main>
 
-<button id="login" onclick="capQuyen()">
-  1. XÁC THỰC ADMIN
-</button>
+<footer class="foot">
+  <div class="foot-name">Lovely Animals</div>
+  <a class="foot-link" href="https://nightzone.vercel.app">NightZone</a>
+</footer>
 
-<button id="pay" onclick="pay5()">
-  2. PAY 5 UID - TESTNET
-</button>
-
-<div id="log">Sẵn sàng.
-Network: TESTNET ONLY
-Amount: 1 Pi / UID
-Backend: Vercel
-</div>
-
-<script>
-"use strict";
-
-Pi.init({
-  version: "2.0",
-  sandbox: true
-});
-
-const BACKEND_URL =
-  "https://tnkh160389githubio.vercel.app/api/pay5uid";
-
-const SCOPES = [
-  "username",
-  "payments",
-  "wallet_address"
-];
-
-const TARGETS = [
-  {
-    username: "thuongsheva",
-    uid: "42e4b976-a279-43e3-afc1-3f3e75db0e16"
-  },
-  {
-    username: "nguyenanhuann113113",
-    uid: "42e3690a-ca9d-4726-bc94-43abd7cecb60"
-  },
-  {
-    username: "phithuong07",
-    uid: "6d7867e6-9abb-4f76-9cb4-85e146eee486"
-  },
-  {
-    username: "thuongsheva01",
-    uid: "6b6080ea-081c-4e34-8b81-91fd173b7c36"
-  },
-  {
-    username: "dttngan123",
-    uid: "a46fa764-7725-4f23-bbfc-554b358e33d3"
-  }
-];
-
-let authData = null;
-let busy = false;
-
-const $ = id => document.getElementById(id);
-
-function log(message) {
-  const time = new Date().toLocaleTimeString();
-  $("log").textContent +=
-    "\n[" + time + "] " + message;
-  $("log").scrollTop = $("log").scrollHeight;
-}
-
-function setStatus(message) {
-  $("status").textContent = message;
-}
-
-async function authenticate() {
-  const auth = await Pi.authenticate(
-    SCOPES,
-    function(payment) {
-      log(
-        "INCOMPLETE PAYMENT FOUND: " +
-        (payment.identifier || "unknown") +
-        ". Cần kiểm tra trước khi chạy tiếp."
-      );
-    }
-  );
-
-  if (!auth || !auth.accessToken || !auth.user) {
-    throw new Error("Pi authentication không trả đủ dữ liệu");
-  }
-
-  authData = auth;
-
-  setStatus(
-    "ADMIN: " +
-    auth.user.username +
-    " | UID: " +
-    auth.user.uid
-  );
-
-  return auth;
-}
-
-async function capQuyen() {
-  if (busy) return;
-
-  try {
-    log("Đang xác thực Pi...");
-    const auth = await authenticate();
-
-    log("AUTH SUCCESS");
-    log("Username: " + auth.user.username);
-    log("UID: " + auth.user.uid);
-    log("AccessToken: đã nhận (không hiển thị token)");
-
-  } catch (error) {
-    authData = null;
-    log("AUTH ERROR: " + error.message);
-    setStatus("Xác thực thất bại");
-  }
-}
-
-async function pay5() {
-  if (busy) return;
-
-  busy = true;
-  $("pay").disabled = true;
-  $("login").disabled = true;
-
-  try {
-    if (!authData) {
-      log("Chưa có accessToken. Đang xác thực...");
-      await authenticate();
-    }
-
-    log("--------------------------------");
-    log("BẮT ĐẦU PAY A2U TESTNET");
-    log("Backend: " + BACKEND_URL);
-    log("Số UID: " + TARGETS.length);
-    log("Amount: 1 Pi / UID");
-    log("--------------------------------");
-
-    const response = await fetch(BACKEND_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        accessToken: authData.accessToken
-      })
-    });
-
-    const raw = await response.text();
-    let data;
-
-    try {
-      data = JSON.parse(raw);
-    } catch {
-      throw new Error(
-        "Backend trả dữ liệu không phải JSON: " +
-        raw.substring(0, 1000)
-      );
-    }
-
-    log("HTTP STATUS: " + response.status);
-
-    if (data.results) {
-      for (const item of data.results) {
-        log("--------------------------------");
-        log(
-          (item.success ? "SUCCESS " : "FAILED ") +
-          (item.username || item.uid || "unknown")
-        );
-
-        if (item.paymentId) {
-          log("Payment ID: " + item.paymentId);
-        }
-
-        if (item.txid) {
-          log("TXID: " + item.txid);
-        }
-
-        if (item.error) {
-          log("ERROR: " + item.error);
-        }
-
-        if (item.skipped) {
-          log("Đã thanh toán trước đó - không gửi lại");
-        }
-      }
-    }
-
-    log("--------------------------------");
-    log("KẾT QUẢ: " + JSON.stringify(data, null, 2));
-
-    if (data.success) {
-      setStatus(
-        "HOÀN TẤT: " +
-        data.successCount +
-        "/" +
-        data.total
-      );
-    } else {
-      setStatus(
-        "CẦN KIỂM TRA: " +
-        (data.successCount || 0) +
-        "/" +
-        (data.total || 5)
-      );
-    }
-
-  } catch (error) {
-    log("BATCH ERROR: " + error.message);
-    setStatus("Lỗi - kiểm tra backend");
-
-  } finally {
-    busy = false;
-    $("pay").disabled = false;
-    $("login").disabled = false;
-  }
-}
-</script>
-
+<script src="js/main.js"></script>
 </body>
 </html>
