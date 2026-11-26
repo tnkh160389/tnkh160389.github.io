@@ -1,0 +1,63 @@
+/* Mảnh ghép — hiệu ứng ảnh ghép lại từ nhiều mảnh nhỏ bay vào.
+   Chỉ áp dụng cho 8 ảnh tĩnh trong gallery "Khoảnh khắc" (figure.mg-tiles).
+   3 clip video (vịt con / gấu trúc / corgi) KHÔNG dùng hiệu ứng này.
+   Tổng cộng vài KB, pure CSS + vanilla JS (js/manh-ghep.js). */
+
+/* Khi tiles đã dựng xong: bỏ hiệu ứng mờ/trượt mặc định của .item,
+   để Mảnh ghép làm hiệu ứng mở đầu duy nhất. */
+.item.mg-tiles.mg-ready {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+/* Trong lúc chờ / đang ghép: ẩn ảnh gốc (ảnh vẫn chiếm chỗ nên không
+   nhảy layout), ẩn caption cho tới khi ghép xong. */
+.item.mg-tiles.mg-ready:not(.mg-done) img { opacity: 0; }
+.item.mg-tiles.mg-ready:not(.mg-done) figcaption { opacity: 0; }
+.item.mg-tiles.mg-ready figcaption { transition: opacity .4s ease .1s; }
+
+/* Khi ghép xong: ảnh gốc mờ dần vào, lớp tiles mờ dần rồi JS gỡ bỏ. */
+.item.mg-tiles.mg-done img { opacity: 1; transition: opacity .3s ease; }
+.item.mg-tiles.mg-done figcaption { opacity: 1; }
+.item.mg-tiles.mg-done .mg-layer {
+  opacity: 0;
+  transition: opacity .25s ease;
+  pointer-events: none;
+}
+
+/* Lớp chứa các mảnh — phủ kín khung ảnh, cắt theo bo tròn của .item. */
+.mg-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+.item.mg-tiles figcaption { z-index: 2; }
+
+/* Một mảnh: nền là chính ảnh đó, cắt đúng vị trí bằng background-position.
+   +1px chống khe hở do làm tròn sub-pixel khi bay. */
+.mg-tile {
+  position: absolute;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(.82) rotate(var(--rot, 0deg));
+  transition:
+    opacity .38s cubic-bezier(.22, .61, .36, 1),
+    transform .38s cubic-bezier(.22, .61, .36, 1);
+  transition-delay: var(--delay, 0ms);
+  will-change: opacity, transform;
+}
+/* Khi phát: mảnh bay về đúng vị trí, hiện dần. */
+.mg-layer.mg-play .mg-tile {
+  opacity: 1;
+  transform: translate(0, 0) scale(1) rotate(0deg);
+}
+
+/* Giảm chuyển động / không có JS: không dùng tiles, ảnh hiện bình thường.
+   (JS cũng tự bỏ qua trong 2 trường hợp này; đây là lớp dự phòng CSS.) */
+@media (prefers-reduced-motion: reduce) {
+  .mg-layer { display: none !important; }
+  .item.mg-tiles.mg-ready:not(.mg-done) img,
+  .item.mg-tiles.mg-ready:not(.mg-done) figcaption { opacity: 1; }
+}
